@@ -1,0 +1,133 @@
+= Frugalware
+Vajna Miklós
+2008. január 16.
+
+== Intro
+
+* Miklós előadásának elsődleges témája a Frugalware Linux. Röviden ismerteti,
+hogy honnan bukkant elő ez a disztribúció, és miért jó nekünk, hogy van -
+függetlenül attól, hogy használjuk-e vagy sem. Néhány - talán kevésbé ismert -
+sztori a kezdetekről, valamint azokról a pillanatokról, amiért érdemes a
+fejlesztőknek egy effajta projektre a drága szabaidejükből áldozni.
+
+== Gondolatok #1: Kovetkezetesseg. (Debian)
+
+* A Frugalware fejlesztese soran fontosnak tartjuk azt, hogyha donteseket hozunk,
+ahhoz utana kovetkezetesen igazodjunk. Egy pelda a csomag-elnevezesek
+kerdeskorebol.
++
+----
+23:51 < paolo> Tv: I cannot find the package
+      that includes Net::SMTP::SSL.
+23:52 < Tv> paolo: either
+      libnet-smtp-server-perl or
+      libcrypt-ssleay-perl or nothing
+----
+
+* Ezt a Frugalware-es konvenciok szerint mi perl-net-smtp-ssl-nek nevezzuk el.
+Melyik a szimpatikusabb?
++
+(Igen, az tok jo, hogy nagyon odafigyelnek a license-ekre, es igy naluk meg
+lehet nezni, hogy nagyjabol objektive mi a tenyallas, de ehhez nem kell
+hasznalni is ezt a rendszert.)
+
+== Gondolatok: #2: Nyiltsag. (openSuSE)
+
+* A Frugalware-ben - az infrastruktura biztonsagos uzemeltetesehez szukseges
+jelszavak elrejteset leszamitva - igyekszunk tenyleg mindent nyiltta tenni.
+Ennek nagyon onzo oka van: ha nem irjuk le a dolgokat, akkor azt elobb-utobb
+elfelejtjuk es mikor szukseg van ra akkor ujabb egy nap megy el mire kitalaljuk
+hogy hogyan is kellett megoldani egy problemat. Masreszt azzal hogy valamit
+nyiltta teszunk a vilag szamos pontjara tukrozhetove tesszuk, tehat eleg kicsi
+az eselye, hogy elveszik. Szamunkra kisse erthetetlen, hogy egy openSuSE-nak -
+aki nyiltnak nevezi magat - miert kell a buildscriptjeinek SVN repo-jat (vagy
+amit hasznalnak) elrejtenie a nyilvanossag elol.
+
+== Gondolatok #3: Barmilyen kozhelyesen hangzik, mi jot szeretnenk a felhasznaloinknak. (Fedora)
+
+* Ertem ez alatt azt, hogy a Frugalware nem egy olyan disztribucio, amit - a
+Fedorahoz hasonloan - alapvetoen azzal a cellal adnak oda a felhasznaloknak,
+hogy majd ok - a ceg helyett - kiteszteljek a hibakat. A stabil kiadasokat
+legjobb tudasunk szerint igyekszunk elkesziteni, es ha arrol kell donteni, hogy
+stabilitas, vagy tobb funkcio, akkor bizony ez elobbit valasztjuk. Jo pelda
+erre az Xorg 7.3as kiadasa, amit meglepo modon sokan (pl openSuSE, Fedora)
+elfogadtak stabil kiadasnak, pedig rengeteg problema van vele. Pedig ez nem
+csak a mi aggalyoskodasunk, mikor korbeneztunk, hogy csak nekunk van-e
+problemank ezzel a kiadassal akkor kiderult, hogy se a Gentoo se a Sun nem
+tervezi ezt a kiadast a felhasznaloinak szallitani.
+
+== Fedora folyt.
+
+* (Mindket rendszerre igaz, hogy sok olyan fejlesztot alkalmaz akinek a kodjai
+vegulis hozzank is eljutnak, tehat szinten el kell ismerni, hogy jo, hogy ok
+vannak - de megint ott tartunk, hogy emellett nyilvanvalo hatranyai vannak a
+rendszer hasznalatanak.)
+
+== Gondolatok #4: Realitas. (Gentoo)
+
+* A Gentoo fejlesztoi nagyon sok olyan hibat kepesek megtalalni amit senki mas -
+egyszeruen azert mert ok megprobalnak mindenfele teljesen extrem konfiguraciot
+is tamogatni. Ez nagyon szep es jo dolog, de az altaluk megtalalt hibajavitasok
+termeszetesen a tobbi disztribucioba is bekerulnek. Masreszt viszont a rendszer
+hasznalata a lassu csomagtelepites miatt igencsak kenyelmetlen lehet.
+
+* Egyszeru peldakent csak azt tudom felhozni, hogy bizony a Frugalware -current
+aganak a hasznalata sem teljesen problemamentes. Nyilvan enis a sajat
+notebookomon azt futtatom, de pl a munkahelyemen mar nem tennem, mert nincs
+idom arra, hogy magaval a rendszerrel vacakoljak, mikor ennel magasabbszintu
+problemak megoldasaert fizetnek...
+
+== Gentoo folyt.
+
+* ...Tehat - figyelembe veve, hogy rendszeres
+frissites eseten azert altalaban havonta elfordul valami problema a -current
+verzio hasznalata eseten - en sajat magam is szivasnak tartom, egynal tobb
+gepen -currentet hasznalni. Pedig ez egy binaris disztro, a napi -current
+frissites is lefut par perc alatt - a csomagok forrasbol valo forgatasanak
+idejenek toredeke alatt.
+
+* Tokjo, hogy van egy ilyen alternativa, ki lehet probalni, sokat lehet vele
+tanulni (ilyen szempontbol talan az LFS meg jobb pelda), de ezt hasznalni napi
+szinten szerintem szivas.
+
+== Gondolatok #5: Slackware
+
+* Itt nem hasznalok kulon elvet, hogy miben terunk el nagyon, mert nem sokban.
+Azthiszem az alapveto kulonbseg az, hogy a Slackware egy ceg, aki profitot akar
+csinalni, es emellett a disztronak van 1db karbantartoja. A ceg sok-sok eves
+security supportot ad minden egyes kiadasra. Ezt a ket tenyt figyelembe veve
+termeszetes, hogy a disztro csomagjait igencsak limitalni kell, olyan alapveto
+desktop programokat se talalunk meg benne mint az OpenOffice.org. A maga
+kategoriajaban egy gyonyoru mu, csak eppen a nemhivatalos csomagokkal valo
+folyamatos szivas megint nehezkesse teszi mindennapi hasznalatra.
+
+== Gondolatok #6: Arch
+
+* "If someone can't speak English, it's either time to learn or go with another
+distro."
+
+== Gondolatok összefoglalas
+
+* Nah, eleg a tobbi disztro szidasabol. Remelem ennyibol tiszta a kep mostmar
+mindenkinek: egyreszt a Frugalware fejleszteset az motivalja, hogy akik
+fejlesztik azok egy kenyelmes rendszert kapnak, masreszt az, hogy latjuk, hogy
+ez masoknak (olyan felhasznalok akik nem fejlesztenek) is jo. Tehat nem celunk
+meggyozni masokat, hogy nekik ezt _kell_ hasznalni - itt johet poen MSDrol - ,
+nekunk nem erdekunk, csak magunkban megjegyezzuk, hogy az o baja, hogy nem
+hasznal. Ezen kivul lathato, hogy onmagaban a Frugalware fejlesztese soran
+felfedezett hibak miatt olyan embereknek is hasznos a Frugalware letezese akik
+nem hasznaljak, valamint nyilvanvaloan szamunkra is hasznos a tobbi disztro
+letezese, tehat ennek ertelmeben kicsit meg varunk a world domination
+projectunkkel :)
+
+== Sztorik
+
+* lilo-freenode
+* x86_64 server donation
+* unideb
+* clevo
+* i18n domainek, 3rd-party repok
+* csomaglista novekedes vs belyegek vs fejboltudni mindegyiket
+* team work - 1het offline, de a szekeret toljak masok
+
+// huh, ki is futottunk mar az idobol.

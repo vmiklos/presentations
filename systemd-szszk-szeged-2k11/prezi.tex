@@ -1,0 +1,299 @@
+\documentclass{beamer}
+\author{Vajna Miklós}
+
+\setbeamertemplate{background canvas}[vertical shading][bottom=white,top=structure.fg!25]
+
+\usetheme{Warsaw}
+\setbeamertemplate{headline}{}
+\setbeamertemplate{footline}[page number]
+\setbeamersize{text margin left=0.5cm}
+  
+\usepackage[magyar, english]{babel}
+
+\usepackage{times}
+\usepackage[latin2]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{verbatim}
+\usepackage{url}
+
+\begin{document}
+
+\title{A systemd rendszer- és szolgáltatáskezelõ démon}
+\date{2011. szeptember 23.}
+
+\frame{\titlepage}
+
+% The Joy of Six
+%    * Use bullet points
+%    * Start each point with a capital letter
+%    * Limit your slide to at most 6 bullet points
+%    * Have at most 6 words per bullet point
+%    * Don't use ALL CAPS
+%    * Restrict nesting to at most 2 levels
+
+\begin{frame}
+\frametitle{Mirõl lesz szó?}
+\begin{itemize}
+\item A systemd projektrõl röviden
+\item Killer feature-ök
+\item Funkciók bemutatása
+\item Migrációs tapasztalatok
+\item Bekapcsolódás a fejlesztésbe
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{A systemd projektrõl röviden}
+\begin{itemize}
+\item Rendszer- és szolgáltatáskezelõ démon
+\item sysvinit leváltására
+\item SysV és LSB init scriptekkel kompatibilis
+\item Legfontosabb funkciók:
+\begin{itemize}
+\item agresszív párhuzamosítási képességek a függõség-alapú szolgáltatásvezérlõ logikának köszönhetõen
+\item igény szerinti szolgáltatás-indítás socket/D-Bus activation segítségével
+\item rendszer állapotának mentése, monitorozása és visszaállítása
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{A systemd projektrõl röviden}
+\framesubtitle{Története}
+\begin{figure}[H]
+\includegraphics[width=50px,keepaspectratio]{pic/fedora.pdf}
+\hspace{10 mm}
+\includegraphics[width=50px,keepaspectratio]{pic/opensuse.pdf}
+\end{figure}
+\begin{itemize}
+\item Szerzõk: Lennart Poettering (Red Hat), Kay Sievers (Attachmate/SUSE)
+\item Nem ismeretlenek: udev, pulseaudio, avahi, ifplugd, stb.
+\item Elsõ kiadás: 2010. április 30.
+\item Ötletek más init rendszerekbõl: Solaris SMF, Apple launchd, Canonical upstart
+\item Csak Linux kernelen
+\item Mára a legtöbb nagy disztribúció vagy váltott rá, vagy tervezi a váltást a következõ verzióban.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{A systemd projektrõl röviden}
+\framesubtitle{Ki váltott már?}
+\includegraphics[width=50px,keepaspectratio]{pic/mandriva.pdf}
+\hspace{5 mm}
+\includegraphics[width=50px,keepaspectratio]{pic/arch.pdf}
+\hspace{5 mm}
+\includegraphics[width=50px,keepaspectratio]{pic/frugalware.pdf}
+\hspace{5 mm}
+\includegraphics[width=50px,keepaspectratio]{pic/debian.pdf}
+\hspace{5 mm}
+\includegraphics[width=50px,keepaspectratio]{pic/gentoo.pdf}
+\begin{itemize}
+\item Fedora 15: ez az alapértelmezett
+\item openSUSE: 11.4-ben választható, 12.1-re tervezett gyárilag
+\item Mandriva 2011: alapértelmezett
+\item Arch Linux: közösségi repóból telepíthetõ
+\item Frugalware 1.5: alapértelmezett
+\item Debian GNU/Linux: SID-bõl telepíthetõ
+\item Gentoo: testing-bõl elérhetõ
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{A systemd projektrõl röviden}
+\framesubtitle{Miért csak Linuxon?}
+Mert olyan kernel funkciókat használ, ami jelenleg más rendszereken nem érhetõ el. Példák:
+\begin{itemize}
+\item cgroups
+\item autofs4
+\item libudev
+\item capabilities
+\item /sys
+\item IP\_FREEBIND
+\item oom score
+\item binfmt\_misc
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Killer feature-ök}
+\framesubtitle{Minimalizmus}
+\begin{itemize}
+\item A rendszerindítás építõkövei az rc scriptek voltak, példa a smartd rc
+scriptjére: 653 sor.
+\item A systemd ezek helyett service file-okat használ, például:
+{\tiny
+\begin{verbatim}
+[Unit]
+Description=Self Monitoring and Reporting Technology (SMART) Daemon
+
+[Service]
+ExecStart=/usr/sbin/smartd -n 
+
+[Install]
+WantedBy=multi-user.target
+\end{verbatim}
+}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Killer feature-ök}
+\framesubtitle{Minden szolgáltatásnak saját cgroup}
+\begin{itemize}
+\item A monitorozás a sysvinit mellett nehézkes: honnan tudjuk, hogy egy szolgáltatás leállt?
+\item Tipikus hack: pidfile + bízni, hogy a megfelelõ pid íródik bele, a szolgáltatás tényleg leáll
+\item Honnan tudjuk, hogy egy process melyik szolgáltatáshoz tartozik? (zypper ps)
+\item Probléma logout, shutdown esetén
+\item Megoldás: minden szolgáltatásnak saját cgroup, az onnan fork()olt processek is benne maradnak
+\item Ha már cgroup: limitek (cpu, memória, io, stb.) cgroup-szinten
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Killer feature-ök}
+\framesubtitle{Párhuzamosítás, implicit függõségek}
+\begin{itemize}
+\item Ismert: párhuzamosítással gyorsítható a rendszerindítás
+\item Probléma: függõségek kellenek hozzá, kézzel meg kell adni, elég egy hiba és nem bootol a rendszer
+\item Megoldás: Tegyük le a szolgáltatások socketjeit elõre, majd indítsunk el mindent egyszerre, a többit a kernel megoldja (socket activation)
+\item Ha már a socketek külön életet élnek: restart egyetlen socketre beérkezett kérés elmulasztása nélkül
+\item Innen adódik az igény szerinti szolgáltatás-indítás is
+\item Hasonló ötlet alkalmazható device, path, DBus esetén
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Killer feature-ök}
+\framesubtitle{Disztribúció-független megközelítés}
+\begin{itemize}
+\item init rendszer tipikus terület ahol a disztribúciók igenis különböztek (eddig; a telepítõ és csomagkezelõ mellett)
+\item Az rc scripteknél ez teljes FAIL: különbözõ név, könyvtárak, runlevelek, paraméterek, konfigurációk
+\item Az LSB ezen segítene, de a gyors boothoz ez se volt elég, aki implementál LSB-t, az is használ egyedi kiegészítéseket
+\item Itt: a service file legyen disztribúció-független és az upstream tarball része
+\item Ugyanez egyéb alacsony szintû config file-okra: /etc/os-release és társai
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Funkciók bemutatása}
+\framesubtitle{Aktiválás}
+\begin{itemize}
+\item Rendszerindítás során: targetek, azok dependjei (egy aktiválás egy symlink, mert egymásra épülnek a targetek, nem úgy, mint sysvinitnél)
+\item Socketre küldött üzenettel: syslog, cups, dbus, udev, stb.
+\item DBus: DBus által elérhetõ szolgáltatásokhoz (DBus-ban ehhez mapping)
+\item Eszközön keresztül: ha bedugom a nyomtatót, induljon el a cups, bluetooth/bluetoothd ugyanígy
+\item Path: munkakönyvtárba lerakott file (nem titkoltan az OSX-bõl átvett ötlet)
+\item Timer: oneshot service-ek periodikus futtatása (/tmp kipucolása)
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Funkciók bemutatása}
+\framesubtitle{Monitorozás}
+\begin{itemize}
+\item A cgroup funkció miatt pontos kép a szolgáltatás folyamatairól
+\item Akció definiálható, hogy mi történjen, ha a szolgáltatás leáll
+\item API, ahol a szolgáltatás jelezheti az állapotát
+\item Indítás során minden kimenet logolódik, nincs ,,eltûnt'' hibaüzenet
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Funkciók bemutatása}
+\framesubtitle{Mount pontok kezelése}
+\begin{itemize}
+\item Szükséges: ha minden egyszerre indul, szolgáltatásoknak kellhet valamilyen mount point.
+\item Lehetséges az aktiválás itt is: autofs.
+\item Explicit mount unitokkal, vagy fstab alapján.
+\item Ráépül az fsck service-ekre.
+\item A mount unitokra is épülnek automatikusan: pl. kvóta vizsgálata.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Funkciók bemutatása}
+\framesubtitle{Hogy néz ez ki a gyakorlatban?}
+\begin{itemize}
+\item Minden kis egység unit, ezek fajtája lehet service, socket, path, mount, device, stb.
+\item Freedesktop projekt: .desktop formátumot használja újra
+\item Csomagból /lib/systemd/system alatt, /etc alá másolható és testreszabható
+\item Futási idõben: /run alatt
+\item Generátorok: kompatibilitás miatt, valamint udev üzenetekbõl legyártott device unitok, stb.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Migrációs tapasztalatok}
+\begin{itemize}
+\item Létezõ megoldás jobb kezelése esetén: visszafele kompatibilitás
+\item fstab, rc scriptek, generátor interfész
+\item Új konfigurációs file-ok esetén disztró-specifikus \#ifdef-ek
+\emph{korlátozott} ideig megengedettek
+\item A systemd még mindig újdonságnak számít: leginkább referencia jellegû
+dokumentáció érhetõ csak el
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Migrációs tapasztalatok}
+\framesubtitle{Esettanulmány: Frugalware}
+\begin{itemize}
+\item Elsõ systemd csomag: 2010. november 23.
+\item Opcionálisan a -current ágban: 2010. december 20.
+\item Opcionálisan a -stable ágban: 2011. február 13.
+\item Alapértelmezett a -current ágban: 2011. február 21.
+\item Alapértelmezett a -stable ágban: 2011. augusztus 15.
+\item Mi vesz idõt igénybe: disztró-specifikus funkciókhoz generátorok írása, tesztelés
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Bekapcsolódás a fejlesztésbe}
+\begin{itemize}
+\item Szabad szoftver, de vásárolható hozzá kereskedelmi támogatás
+\item Kezdetben: legtöbb változtatás, hogy a systemd olyan jól fusson más disztribúciókon mint Fedorán
+\item Szokásos ,,a mai felhasználók a jövõ fejlesztõi'' elv
+\item A kód nagy részét Lennart írta: egységes forráskód, nincs elbonyolítva absztrakciós rétegekkel, szétgányolva \#ifdef-ekkel
+\item Új funkciók: megbeszélés levlistán, majd TODO, majd implementáció
+\item Hackeléshez szükséges tudás minimális: C, libudev, libdbus ismeret kell csak hozzá
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Bekapcsolódás a fejlesztésbe}
+\framesubtitle{Egy kis statisztika}
+\begin{verbatim}
+$ git shortlog -s -n|head
+  2410  Lennart Poettering
+   137  Kay Sievers
+    26  Michal Schmidt
+    20  Michael Biebl
+    17  Andrey Borzenkov
+    16  Miklos Vajna
+    13  Harald Hoyer
+    13  Tom Gundersen
+    11  Fabiano Fidencio
+    10  Bill Nottingham
+\end{verbatim}
+\end{frame}
+
+\begin{frame}
+\frametitle{Hivatkozások}
+\begin{itemize}
+\item Miért csak Linux-on fut a systemd: \url{http://mail.gnome.org/archives/desktop-devel-list/2011-May/msg00447.html}
+\item Podcast: \url{http://media.libsyn.com/media/linuxoutlaws/linuxoutlaws160.ogg} (1:10:50-nél kezdõdik, 17 perc)
+\item linux.conf.au 2011 videó: \url{http://linuxconfau.blip.tv/file/4696791/}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Elérhetõségek}
+\begin{itemize}
+\item systemd honlap: \url{http://freedesktop.org/wiki/Software/systemd}
+\item Levelezési lista: \url{http://lists.freedesktop.org/mailman/listinfo/systemd-devel}
+\item IRC: \url{irc://irc.freenode.net/systemd}
+\item A diák elérhetõsége: \url{http://vmiklos.hu/odp/}
+\end{itemize}
+\end{frame}
+
+\end{document}

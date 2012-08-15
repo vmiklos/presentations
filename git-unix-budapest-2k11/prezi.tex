@@ -1,0 +1,291 @@
+\documentclass{beamer}
+\author{Vajna Miklós}
+
+\setbeamertemplate{background canvas}[vertical shading][bottom=white,top=structure.fg!25]
+
+\usetheme{Warsaw}
+\setbeamertemplate{headline}{}
+\setbeamertemplate{footline}[page number]
+\setbeamersize{text margin left=0.5cm}
+  
+\usepackage[magyar, english]{babel}
+
+\usepackage{times}
+\usepackage[latin2]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{verbatim}
+
+\begin{document}
+
+\title{Verziókezelés a Git használatával}
+\date{2011. május 11.}
+
+\frame{\titlepage}
+
+% The Joy of Six
+%    * Use bullet points
+%    * Start each point with a capital letter
+%    * Limit your slide to at most 6 bullet points
+%    * Have at most 6 words per bullet point
+%    * Don't use ALL CAPS
+%    * Restrict nesting to at most 2 levels
+
+\begin{frame}
+\frametitle{Mirõl lesz szó?}
+\begin{figure}[H]
+\includegraphics[width=100px,keepaspectratio]{pic/git-icon.pdf}
+\end{figure}
+\begin{itemize}
+\item Miért jó a verziókezelés?
+\item Miért jó az elosztott verziókezelés?
+\item Miért jó a Git?
+\item A Gitrõl - alulról felfelé
+\item A Git használata külsõsként
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Miért jó a verziókezelés?}
+\begin{itemize}
+\item Mindenki használ verziókezelést, legfeljebb nem tud róla (Mentés
+  másként, tarball + patch-ek, stb.)
+\item Kollaborációs munkához elengedhetetlen
+\item Hibakeresést segíti
+\item Dokumentációs eszköz
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Miért jó az elosztott verziókezelés?}
+\begin{itemize}
+\item A teljes repó elérhetõ helyben, gyors blame, log, diff, merge
+\item Nincs szükség hálózati kapcsolatra
+\item Nincs SPoF
+\item Megszûnhet a \emph{committer} fogalma
+\item Backup jelentõsége csökken
+\item Branch/merge egyszerûbbé válik
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Miért jó a Git?}
+\begin{itemize}
+\item A legtöbb elõny természetesen az elosztottságból fakad
+\item merge-recursive
+\item rerere
+\item blame - kódblokk-áthelyezés érzékelése (vö. explicit
+  másolás/átnevezés)
+\item git grep
+\item combined diff
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{A Gitrõl - alulról felfelé}
+\begin{itemize}
+\item Alacsony szinten egy tartalom szerint címezhetõ fájlrendszer
+\item 4 objektum-típus: blob, tree, commit, tag
+\item blob: egy fájl egy változata
+\item tree: lehet tree vagy blob, mindegyikbõl több, de összesen legalább
+  egy
+\item commit: 0..sok parent, egy tree
+\item tag: van neve, és bármire mutathat (commitra szokott)
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Ami nem objektum}
+\begin{itemize}
+\item ref, symref
+\item hook
+\item reflog
+\item config
+\item index
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Merge vs. rebase}
+\begin{itemize}
+\item Kiindulás:
+
+\begin{verbatim}
+      A---B---C topic
+     /
+D---E---F---G master
+\end{verbatim}
+
+\item rebase:
+
+\begin{verbatim}
+              A'--B'--C' topic
+            /
+D---E---F---G master
+\end{verbatim}
+
+\item merge:
+
+\begin{verbatim}
+      A---B---C---H topic
+     /          /
+D---E---F---G master
+\end{verbatim}
+
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{A Git használata külsõsként}
+\begin{itemize}
+\item Külsõs: nincs commit joga, patch-eket küld
+\item Helyben persze git-ben dolgozik
+\item Rebase-el, nem merge-öl
+\item Interactive rebase: squash, darabolás, rendezgetés
+\item git format-patch, git am
+\item Bundle-ök
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Git parancsok: sok van, melyik kell nekem?}
+\begin{itemize}
+\item A Git 1.7.4 esetén 141 parancs
+\item Fõ magas szintû parancsok
+\item Mellék magas szintû parancsok
+\item Alacsony szintû parancsok
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Legfontosabb parancsok}
+\begin{itemize}
+\item init, clone, add, rm
+\item status, diff
+\item commit, reset
+\item fetch, pull, push
+\item branch, checkout, rebase, merge
+\item log, tag, mv, show, grep, bisect
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Fõ magas szintû parancsok (példák)}
+\begin{itemize}
+\item archive, bundle, am és format-patch
+\item cherry-pick és revert
+\item describe, shortlog
+\item gc, clean, stash, submodule
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Mellék magas szintû parancsok (példák)}
+\begin{itemize}
+\item Manipulálók: config, filter-branch
+\item Lekérdezés: blame, fsck, verify-tag
+\item Interakció más rendszerekkel:
+  fast-import, fast-export,
+  archimport, cvsimport, cvsexportcommit,
+  quiltimport, svn
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Alacsony szintû parancsok}
+\begin{itemize}
+\item Ha scriptelni szeretnénk
+\item Példa: log vs rev-list:
+\begin{verbatim}
+$ git log --pretty=oneline HEAD~2..
+2920c0c vinagre
+329aae5 gtk-vnc
+$ git rev-list HEAD~2..
+2920c0c
+329aae5
+\end{verbatim}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Commitok szimbolikus nevei}
+\begin{itemize}
+\item Egy példa sokat segíthet:
+\begin{verbatim}
+G   H   I   J  A =      = A^0
+ \ /     \ /   B = A^   = A^1     = A~1
+  D   E   F    C = A^2  = A^2
+   \  |  / \   D = A^^  = A^1^1   = A~2
+    \ | /   |  E = B^2  = A^^2
+     \|/    |  F = B^3  = A^^3
+      B     C  G = A^^^ = A^1^1^1 = A~3
+       \   /
+        \ /
+         A
+
+H = D^2  = B^^2    = A^^^2  = A~2^2
+I = F^   = B^3^    = A^^3^
+J = F^2  = B^3^2   = A^^3^2
+\end{verbatim}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Az index}
+\begin{itemize}
+\item Probléma: egy fájlban két módosítás, de csak az egyiket szeretnénk
+  commitolni
+\item Karbantartás esetén: merge-nél csak a conflict lenne az érdekes
+\item Megoldás: index, mint köztes réteg
+\item git diff, git diff --cached, git diff HEAD
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Index ábra}
+\begin{itemize}
+\item Az elõbbi parancsok térbe helyezve:
+\end{itemize}
+{\tiny
+\begin{verbatim}
+              diff
+             +----+
+             |    |
+          +-----------+
+          | Objektum- |
+          |   tároló  |
+          +-----------+
+            |    |  diff --cached
+ diff HEAD  |  +-------+
+            |  | Index |
+            |  +-------+
+            |    |  diff
+          +----------+
+          |  Munka-  |
+          | könyvtár |
+          +----------+
+\end{verbatim}
+}
+\end{frame}
+
+\begin{frame}
+\frametitle{Hivatkozások}
+\begin{itemize}
+\item Innovations in git
+  http://gitster.livejournal.com/16077.html
+\item Git for Computer Scientists
+  http://eagain.net/articles/git-for-computer-scientists/
+\item Összefoglaló szimbolikus nevekrõl: `man git-rev-parse`
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Elérhetõségek}
+\begin{itemize}
+\item GIT honlap: http://git-scm.com/
+\item Levelezési lista: http://vger.kernel.org/vger-lists.html\#git
+\item IRC: \#git @ irc.freenode.net
+\item A diák elérhetõsége: http://vmiklos.hu/odp/
+\end{itemize}
+\end{frame}
+
+\end{document}

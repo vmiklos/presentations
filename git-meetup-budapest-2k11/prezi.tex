@@ -1,0 +1,156 @@
+\documentclass{beamer}
+\author{Vajna Miklós}
+
+\setbeamertemplate{background canvas}[vertical shading][bottom=white,top=structure.fg!25]
+
+\usetheme{Warsaw}
+\setbeamertemplate{headline}{}
+\setbeamertemplate{footline}[page number]
+\setbeamersize{text margin left=0.5cm}
+  
+\usepackage[magyar, english]{babel}
+
+\usepackage{times}
+\usepackage[latin2]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{tikz}
+
+\begin{document}
+
+\title{Git - gyors verziókezelõ rendszer}
+\date{2011. március 9.}
+
+\frame{\titlepage}
+
+% The Joy of Six
+%    * Use bullet points
+%    * Start each point with a capital letter
+%    * Limit your slide to at most 6 bullet points
+%    * Have at most 6 words per bullet point
+%    * Don't use ALL CAPS
+%    * Restrict nesting to at most 2 levels
+
+\begin{frame}
+\frametitle{Bevezetõ}
+\begin{figure}[H]
+\includegraphics[width=100px,keepaspectratio]{pic/git-icon.pdf}
+\end{figure}
+\begin{itemize}
+\item Egy elosztott verziókezelõ rendszer
+\item Fókusz:
+\begin{itemize}
+\item Sebesség
+\item Hatékonyság
+\item Skálázódás (nagy projektek)
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Elosztott fejlesztés}
+\begin{center}
+\begin{tikzpicture}
+\draw (0,0) node[rectangle,minimum width=1.9cm,minimum height=1cm,fill=green!20,rounded corners = 3,draw] {fejleszt\H{o}};
+\draw (2,0) node[rectangle,minimum width=1.9cm,minimum height=1cm,fill=green!20,rounded corners = 3,draw] {fejleszt\H{o}};
+\draw (4,0) node[rectangle,minimum width=1.9cm,minimum height=1cm,fill=green!20,rounded corners = 3,draw] {fejleszt\H{o}};
+\draw (2,2) node[rectangle,minimum width=2cm,minimum height=1cm,fill=green!40,rounded corners = 3,draw] {megosztott rep\'{o}};
+\draw (0.6,0.6) -- (1.4,1.4) [<->,color=black!40];
+\draw (2,0.6) -- (2,1.4) [<->,color=black!40];
+\draw (3.4,0.6) -- (2.6,1.4) [<->,color=black!40];
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+\begin{frame}
+\frametitle{Elosztott fejlesztés}
+\begin{center}
+\begin{tikzpicture}
+\draw (0,0) node[rectangle,text width=1.7cm,minimum height=1cm,fill=red!20,rounded corners = 3,draw] {integr\'{a}tor};
+\draw (2,0) node[rectangle,text width=1.7cm,minimum height=1cm,fill=green!40,rounded corners = 3,draw] {fejleszt\H{o} priv\'{a}t};
+\draw (4,0) node[rectangle,text width=1.7cm,minimum height=1cm,fill=green!40,rounded corners = 3,draw] {fejleszt\H{o} priv\'{a}t};
+
+\draw (0,2) node[rectangle,text width=1.7cm,minimum height=1cm,fill=blue!20,rounded corners = 3,draw] {``a'' rep\'{o}};
+\draw (2,2) node[rectangle,text width=1.7cm,minimum height=1cm,fill=green!20,rounded corners = 3,draw] {fejleszt\H{o} publikus};
+\draw (4,2) node[rectangle,text width=1.7cm,minimum height=1cm,fill=green!20,rounded corners = 3,draw] {fejleszt\H{o} publikus};
+
+\draw (0.5,0.6) -- (1.4,1.4) [<-,color=black!40];
+\draw (0.6,0.6) -- (3.4,1.4) [<-,color=black!40];
+\draw (0.5,1.4) -- (3.4,0.6) [->,color=black!40];
+\draw (0.5,1.4) -- (2.4,0.6) [->,color=black!40];
+
+\draw (0,0.6) -- (0,1.4) [->,color=black];
+\draw (2,0.6) -- (2,1.4) [->,color=black];
+\draw (4,0.6) -- (4,1.4) [->,color=black];
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+\begin{frame}
+\frametitle{Elosztott fejlesztés}
+\begin{itemize}
+\item Elosztottság (mint minden más modern verziókezelõ)
+\item Távoli repók a helyi repókban branchként (fetch vs merge)
+\item Repók közötti kommunikáció saját protokollal, HTTP-n, stb.
+\item Többféle workflow támogatása
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Nemlineáris fejlesztés}
+\begin{itemize}
+\item Olcsó branch / merge
+\item Eltérõ célok: merge framework
+\item Eszközök nemlineáris projekttörténethez:
+\begin{itemize}
+\item Vizualizáció (gitk)
+\item Navigálás (bisect)
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Nagy projektek hatékony kezelése}
+\begin{itemize}
+\item Nagyon gyors - nagy projektek hosszú történetét hatékonyan kezeli
+\item Átlagban egy nagyságrenddel gyorsabb a többi verziókezelõnél (whygitisbetterthanx, kivétel: add)
+\item Több nagyságrenddel gyorsabb néhány mûvelet esetén (branch/merge)
+\item Extrém hatékony pack formátum: ver minden más szabadon elérhetõ megoldást
+\item Implicit copy/rename detekció
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Projekttörténet kriptográfiai hitelesítése}
+\begin{itemize}
+\item Minden commit hash-e függ az összes hivatkozott objektum hash-étõl
+\item A publikus objektumokat lehetetlen észrevétlenül módosítani
+\item A tageket digitálisan alá lehet írni
+\item Sebesség és biztonság egyszerre
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Eszközkészlet felépítés}
+\begin{itemize}
+\item Unix tradíció (1 eszköz 1 feladat)
+\item Plumbing parancsok (API, C)
+\item Porcelain parancsok (verziókezelõ, C/shell/perl)
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Összefoglalás}
+A Git egy elosztott verziókezelõ rendszer,
+sebességre/hatékonyságra/használhatóságra optimalizálva. Az említett támogatott
+tulajdonságok:
+\begin{itemize}
+\item Elosztott fejlesztés
+\item Nemlineáris fejlesztés
+\item Nagy projektek hatékony kezelése
+\item Projekttörténet kriptográfiai hitelesítése
+\item Eszközkészlet felépítés
+\end{itemize}
+\end{frame}
+
+\end{frame}
+\end{document}

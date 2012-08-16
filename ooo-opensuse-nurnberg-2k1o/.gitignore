@@ -1,0 +1,15 @@
+*.swp
+*.aux
+*.make
+*.dvi
+*.fls
+*.log
+*.pdf
+*.d
+*.ps
+*.toc
+*.temp
+*.nav
+*.out
+*.snm
+*.vrb

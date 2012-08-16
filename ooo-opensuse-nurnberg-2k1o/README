@@ -1,0 +1,26 @@
+bugs:
+field: MSO
+bookmark: in OOo, MSO already autocorrected it
+math: MSO
+chart: MSO
+draw: MSO
+toc: MSO
+charprops: OOo
+sections: column break (OOo), special page break (MSO)
+header-footer-restart: style and restart
+linenumbering: MSO
+picture: wordpad
+forms: MSO
+
+footnote.odt
+header-footer.odt
+hello.odt
+i18n.odt
+numbering.odt
+parprops.odt
+redline.odt
+sections-border.odt
+simpleoutline.odt
+table.odt
+tablestart.odt
+textframes.odt

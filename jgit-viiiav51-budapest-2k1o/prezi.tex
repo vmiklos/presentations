@@ -1,0 +1,786 @@
+\documentclass[hyperref={pdfpagelabels=false}]{beamer}
+\author{Vajna Miklós}
+
+\setbeamertemplate{background canvas}[vertical shading][bottom=white,top=structure.fg!25]
+
+\usetheme{Warsaw}
+\setbeamertemplate{headline}{}
+\setbeamertemplate{footline}[page number]
+\setbeamersize{text margin left=0.5cm}
+  
+\usepackage[magyar, english]{babel}
+
+\usepackage{times}
+\usepackage[latin2]{inputenc}
+\usepackage[T1]{fontenc}
+
+\begin{document}
+
+\title{Elosztott verziókezelés Java platformon: \\
+JGit, EGit, Gerrit}
+\date{2010. október 28.}
+
+\frame{\titlepage}
+
+\begin{frame}
+\frametitle{Mirõl lesz szó?}
+\begin{itemize}
+\item Miért jó az elosztott verziókezelés?
+\item Miért jó a Git, JGit, EGit, Gerrit?
+\item A Git fogalmai
+\item JGit: a Java-ban írt Git library
+\item EGit: Eclipse Git integráció
+\item Gerrit: web-alapú kód review
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Motiváció}
+\framesubtitle{Miért jó az elosztott verziókezelés?}
+A verziókezelés elõnyeit már láttuk korábbi elõadáson, nézzük az elosztottságból fakadó pozitívumokat:
+\begin{itemize}
+\item A teljes repó elérhetõ helyben, gyors blame, log, diff, merge
+\item Nincs szükség hálózati kapcsolatra
+\item Nincs SPoF
+\item Megszûnhet a \emph{committer} fogalma
+\item Backup jelentõsége csökken
+\item Branch/merge egyszerûbbé válik
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Motiváció}
+\framesubtitle{Egyéb okok az elosztott verziókezelésre}
+\begin{itemize}
+\item Commit early, commit often vö. testsuite
+\item Felesleges aszimmetria felszámolása
+\item Mellékhatás: szükségessé tette korrekt merge algoritmusok implementálását
+\item Ütközés esetén nem veszhet el a saját munkánk vö. Subversion \emph{svn up} -ja
+\item Merge ütközések feloldása nem feltétlen a karbantartó feladata
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Motiváció}
+\framesubtitle{Miért jó a Git?}
+\begin{itemize}
+\item A legtöbb elõny természetesen az elosztottságból fakad
+\item Jól skálázódik (más DVCS-ekhez képest is)
+\item Kriptográfia által biztosított biztonság
+\item Szerencsésen megválasztott adatszerkezetek
+\item Ennek következménye: blame - kódblokk-áthelyezés érzékelése (vö. explicit másolás/átnevezés)
+\item Apróságok: rerere, git grep, combined diff
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Motiváció}
+\framesubtitle{Miért jó a JGit?}
+\begin{itemize}
+\item Teljes egészében pure Java implementáció (write once, run/debug everywhere)
+\item Proof-of-concept: noha a C Git nem ad könyvtárat, lehetséges volna olyat írni
+\item BSD license (vs C Git: GPL)
+\item Alapja az EGit-nek, Gerritnek
+\item Kereskedelmi Git kliensek alapjául is szolgál
+\item Megfelelõ háttértámogatás: Google, Redhat, SAP
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Motiváció}
+\framesubtitle{Miért jó az EGit?}
+\begin{itemize}
+\item A C Git parancssoros felülettel rendelkezik
+\item A JGit csak egy library
+\item Valódi grafikus felületet biztosít
+\item Könnyen megtanulható ha más Eclipse VCS felületet már ismerünk
+\item Hátrány: kisebb fejlesztõi háttér: kb. 30 hozzájáruló (C Gitnél: kb. 800)
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Motiváció}
+\framesubtitle{Miért jó a Gerrit?}
+\begin{itemize}
+\item Több szem többet lát
+\item Eredetileg: patch készítése, majd azt levlistára
+\item Alternatíva: push review branch-be, majd peer review webes felületen
+\item Több automatizáltság: nézi, hogy van-e ütközés, gyakori hibákat keres, stb.
+\item Ahol bevált: Android
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{A Git fogalmai}
+\framesubtitle{A 4 objektumtípus}
+\begin{itemize}
+\item Alacsony szinten egy tartalom szerint címezhetõ fájlrendszer
+\item 4 objektum-típus: blob, tree, commit, tag
+\item blob: egy fájl egy változata
+\item tree: lehet tree vagy blob, mindegyikbõl több, de összesen legalább egy
+\item commit: 0..sok parent, egy tree
+\item tag: van neve, és bármire mutathat (commitra szokott)
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{A Git fogalmai}
+\framesubtitle{Objektum-adatbázis példa}
+2 commit és egy tag esetén:
+\begin{figure}[H]
+\includegraphics[width=30mm,keepaspectratio]{objdb.eps}
+\end{figure}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{A Git fogalmai}
+\framesubtitle{Objektum-adatbázis példa}
+\begin{itemize}
+\item Hash számítása:
+\begin{verbatim}
+>>> hashlib.sha1("blob 0\0").hexdigest()
+'e69de29bb2d1d6434b8b29ae775ad8c2e48c5391'
+\end{verbatim}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{A Git fogalmai}
+\framesubtitle{Objektum-adatbázis alacsony szinten}
+\begin{verbatim}
+$ git init
+$ mkdir dir
+$ touch dir/file
+$ git update-index --add dir/file
+$ git update-ref HEAD $(echo A | \
+        git commit-tree $(git write-tree))
+$ echo a > dir/file
+$ git update-index --add dir/file
+$ git update-ref HEAD $(echo B | \
+        git commit-tree $(git write-tree) \
+        -p $(git rev-parse HEAD))
+\end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{A Git fogalmai}
+\framesubtitle{Objektum-adatbázis magas szinten}
+\begin{verbatim}
+$ git init
+$ mkdir dir
+$ touch dir/file
+$ git add dir/file
+$ git commit -m A
+$ echo a > dir/file
+$ git add dir/file
+$ git commit -m B
+\end{verbatim}
+\end{frame}
+
+\begin{frame}
+\frametitle{A Git fogalmai}
+\framesubtitle{Ami nem objektum}
+\begin{itemize}
+\item ref
+\item symref
+\item reflog
+\item config
+\item index
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{A Git fogalmai}
+\framesubtitle{Kódblokk másolás/mozgatás érzékelése}
+\begin{itemize}
+\item Egyedülálló funkció
+\item Egyik legjobb példa arra, hogy mi a baj az explicit átnevezéssel
+\end{itemize}
+\begin{verbatim}
+$ git blame -C b.c
+607001b b.c (Miklos 20090922 32)   g_free(t);
+607001b b.c (Miklos 20090922 33) }
+607001b b.c (Miklos 20090922 34)
+56bbfb0 a.c (Miklos 20090908 35) int ip_get()
+56bbfb0 a.c (Miklos 20090908 36) {
+56bbfb0 a.c (Miklos 20090908 37)   int ip;
+\end{verbatim}
+\end{frame}
+
+\begin{frame}
+\frametitle{A Git fogalmai}
+\framesubtitle{Git ref-ek}
+\begin{itemize}
+\item A referencia rövidítése, egy mutató, ami egy sha1-re mutat, vagy egy másik ref-re
+\item Tipikus ref-ek: HEAD, legtöbbször az aktív branch-re mutat
+\item A branch-ek olyan ref-ek amik a refs/heads/akármi névvel rendelkeznek és commitra mutatnak
+\item Tag-ek: refs/tags/akármi néven futnak és tagre vagy commitra mutatnak (signed/lightweight)
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{A Git fogalmai}
+\framesubtitle{Hookok}
+\begin{itemize}
+\item Speciális scriptek, amik bizonyos idõpontokban futnak le
+\item Példa használatukra: push után levél küldése, vagy xml post cia.vc-re
+\item Commit elõtt sorvégi whitespace-ek keresése
+\item A projekt által megszabott commit message elõkészítése
+\item Saját igényeket kielégítõ ACL megoldás implementálása
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{A Git fogalmai}
+\framesubtitle{Reflog példa}
+Ha az utóbbi 10 másodpercben nem változott semmi:
+\begin{verbatim}
+$ git checkout "@{10 seconds ago}"
+$ git checkout master
+$ git log -g --pretty=oneline
+402de8e HEAD@{0}: checkout: moving \
+        from 402de8e to master
+402de8e HEAD@{1}: checkout: moving \
+        from master to @{10 seconds ago}
+402de8e HEAD@{2}: commit: B
+c820060 HEAD@{3}: commit (initial): A
+\end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{A Git fogalmai}
+\framesubtitle{Merge vs. rebase}
+\begin{itemize}
+\item Kiindulás:
+\begin{verbatim}
+      A---B---C topic
+     /
+D---E---F---G master
+\end{verbatim}
+\item rebase:
+\begin{verbatim}
+              A'--B'--C' topic
+             /
+D---E---F---G master
+\end{verbatim}
+\item merge:
+\begin{verbatim}
+      A---B---C---H topic
+     /          /
+D---E---F---G master
+\end{verbatim}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{A Git fogalmai}
+\framesubtitle{Merge gráfok}
+Ha már nehezen áttekinthetõ a repó, segít a gitk:
+\begin{figure}[H]
+\includegraphics[width=75mm,keepaspectratio]{gitk.eps}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{A Git fogalmai}
+\framesubtitle{Fast-forward}
+\begin{itemize}
+\item Arra utal, hogy pull-kor kell-e majd merge vagy rebase
+\item Jobb a merge ha a repónk referencia mások számára
+\item Jobb a rebase ha szebb historyt akarunk
+\item git.git esetén: master/next/pu
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{A Git fogalmai}
+\framesubtitle{Patch-ek darabolása}
+Példa: adott A, B, C, D és B-t szeretnénk B1-re és B2-re darabolni:
+\begin{verbatim}
+$ git reset --hard B
+$ git reset HEAD^
+$ git add <amit az elsõbe>; git commit
+$ git add <amit a másodikba>; git commit
+$ git cherry-pick C
+$ git cherry-pick D
+\end{verbatim}
+\end{frame}
+
+\begin{frame}
+\frametitle{A Git fogalmai}
+\framesubtitle{Fast import/export}
+\begin{itemize}
+\item eredetileg leginkább svn -> git
+\item 30 GiB Subversion repó 3 óra alatt
+\item már mûködõ import/export: cvs, svn, git, bzr, hg, darcs
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{A Git fogalmai}
+\framesubtitle{Commitok szimbolikus nevei}
+Példa:
+\begin{verbatim}
+G   H   I   J  A =      = A^0
+ \ /     \ /   B = A^   = A^1     = A~1
+  D   E   F    C = A^2  = A^2
+   \  |  / \   D = A^^  = A^1^1   = A~2
+    \ | /   |  E = B^2  = A^^2
+     \|/    |  F = B^3  = A^^3
+      B     C  G = A^^^ = A^1^1^1 = A~3
+       \   /
+        \ /
+         A
+
+H = D^2  = B^^2    = A^^^2  = A~2^2
+I = F^   = B^3^    = A^^3^
+J = F^2  = B^3^2   = A^^3^2
+\end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{A Git fogalmai}
+\framesubtitle{Szimbolikus név ha mégis verziót akarunk}
+\begin{itemize}
+\item elosztott rendszerben a szám nem egyedi
+\item mégis van elõnye ha van egy folyamatosan növekvõ szám
+\item megoldás: tegyük bele mind a kettõt:
+\begin{verbatim}
+$ git describe
+1.1-478-g2920c0c
+\end{verbatim}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{A Git fogalmai}
+\framesubtitle{Az index}
+\begin{itemize}
+\item Probléma: egy fájlban két módosítás, de csak az egyiket szeretnénk commitolni
+\item Karbantartás esetén: merge-nél csak az ütközés lenne az érdekes
+\item Megoldás: index, mint köztes tároló
+\item git diff, git diff --cached, git diff HEAD
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{A Git fogalmai}
+\framesubtitle{Index ábra}
+\begin{verbatim}
+              diff
+             +----+
+             |    |
+          +-----------+
+          | Objektum- |
+          |   tároló  |
+          +-----------+
+            |    |  diff --cached
+ diff HEAD  |  +-------+
+            |  | Index |
+            |  +-------+
+            |    |  diff
+          +----------+
+          |  Munka-  |
+          | könyvtár |
+          +----------+
+\end{verbatim}
+\end{frame}
+
+\begin{frame}
+\frametitle{A Git fogalmai}
+\framesubtitle{git add vö. index}
+\begin{itemize}
+\item git add az indexhez ad
+\item git commit az indexbõl dolgozik
+\item következmény: ha git add után volt szerkesztés, a git commit az index-beli verziót commitolja!
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{JGit}
+\framesubtitle{Történet}
+\begin{itemize}
+\item Eredetileg csak proof-of-concept implementáció
+\item Cél: elkülöníteni a git adatszerkezeteit a létezõ egyetlen implementációtól
+\item Ma: "a legtöbbször újraimplementált verziókezelõ" (C, Java, Ruby, Python, C\#)
+\item Gyakorlatban: különbözõ IDE-k git támogatásához közös Java könyvtár
+\item Kiterjesztve: git repókat kezelni akaró egyéb programok (ld. Gerrit) alapja
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{JGit}
+\framesubtitle{Szerzõk}
+\begin{itemize}
+\item Kezdetben: Shawn O. Pearce (a C git második legaktívabb contributora)
+\item Azóta: Google, SAP, RedHat, stb.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{JGit}
+\framesubtitle{Parancssoros interfész}
+\begin{itemize}
+\item Elsõsorban Java library, de ad-hoc tesztelés céljából létezik egy
+parancsosorból hívható bináris is.
+\item Nem teljes: pl. add nincs, rm van - ilyenkor a GUI-t vagy a C gitet kell használni
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{JGit}
+\framesubtitle{JGit parancsok}
+\begin{verbatim}
+$ jgit
+jgit command [ARG ...]
+The most commonly used commands are:
+branch   List, create, or delete branches
+clone    Clone a repository into a new directory
+commit   Record changes to the repository
+daemon   Export repositories over git://
+diff     Show diffs
+fetch    Update remote refs from another repo
+init     Create an empty git repository
+log      View commit history
+push     Update remote repo from local refs
+rm       Stop tracking a file
+tag      Create a tag
+version  Display the version of jgit
+\end{verbatim}
+\end{frame}
+
+\begin{frame}
+\frametitle{JGit}
+\framesubtitle{JGit hátrányai}
+\begin{itemize}
+\item A legtöbb esetben az új funkciók a JGitben késõbb jelennek meg, mint a C Gitben
+\item A fejlesztést leginkább a cégek végzik: az kerül csak implementálásra amikre nekik szükségük van
+\item Teljes parancssoros interfész készítése nem cél
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{JGit}
+\framesubtitle{JGit elõnyei}
+\begin{itemize}
+\item Bevezetõben már láttuk a legfontosabbakat
+\item Igazi library (C git library: sok statikus változó, tele van exit()-tel)
+\item Néhány esetben (pl Amazon S3) külsõ funkciókra Java library elérhetõ, C nem
+\item Testbed: smart http support itt jelent meg elõször
+\item Mivel fiatalabb projekt, mint a C git, a forráskódja átgondoltabb, olvashatóbb
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{JGit}
+\framesubtitle{Egyéb különbségek}
+Java támogatás hiánya miatt:
+\begin{itemize}
+\item Nincs symlink támogatás
+\end{itemize}
+Egyéb hiányosságok:
+\begin{itemize}
+\item Nincs rebase
+\item Nincs submodule támogatás
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{EGit}
+\framesubtitle{Hello World}
+Készítsünk egy Java projektet "HelloWorld" címen:
+\begin{figure}[H]
+\includegraphics[width=136px,keepaspectratio]{01-CreateNewJavaProject.eps}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{EGit}
+\framesubtitle{Hello World}
+Válasszuk a File > Team > Share Project-et:
+\begin{figure}[H]
+\includegraphics[width=203px,keepaspectratio]{02-TeamShareProject.eps}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{EGit}
+\framesubtitle{Hello World}
+Válasszuk a Gitet, majd a Next-et:
+\begin{figure}[H]
+\includegraphics[width=207px,keepaspectratio]{03-SelectRepositoryTypeGit.eps}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{EGit}
+\framesubtitle{Hello World}
+A Git repó beállításához válasszuk ki az új HelloWorld Eclipse projektünket:
+\begin{figure}[H]
+\includegraphics[width=250px,keepaspectratio]{04-SelectProjectToConfigureGitRepository.eps}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{EGit}
+\framesubtitle{Hello World}
+Kattintsunk a Create-re, hogy elkészítsük az új Git repót. Ha a projekt már egy
+létezõ Git repó munkakönyvtárában jött létre akkor erre értelemszerûen nincs
+szükség.
+\begin{figure}[H]
+\includegraphics[width=250px,keepaspectratio]{05-CreateNewGitRepository.eps}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{EGit}
+\framesubtitle{Hello World}
+A Finish-re kattintva fejezzük be a varázslót.
+\begin{figure}[H]
+\includegraphics[width=110px,keepaspectratio]{06-NewGitRepository.eps}
+\end{figure}
+A "[master]" arra utal, hogy a master nevû branch-en vagyunk, a kérdõjelek pedig arra utalnak, hogy a ".classpath" és ".project" file-ok még nincsenek verziókezelés alatt.
+\end{frame}
+
+\begin{frame}
+\frametitle{EGit}
+\framesubtitle{Hello World}
+\begin{figure}[H]
+\includegraphics[width=262px,keepaspectratio]{07-AddToVersionControl.eps}
+\end{figure}
+\begin{itemize}
+\item A plusszjel arra utal, hogy a ".classpath" és ".project" file-ok most már hozzá lesznek adva a repóhoz.
+\item Készítsünk egy .gitignore nevû file-t a projekt könyvtárban a "bin" tartalommal.
+\item Ez kizárja a bin könyvtár alatti file-okat a verziókezelésbõl. Adjuk hozzá a .gitignore-t a repóhoz.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{EGit}
+\framesubtitle{Hello World}
+A ".settings" azért nem adódik hozzá a repóhoz (annak ellenére, hogy a
+.gitignore-ban sincs listázva), mert alapértelmezetten figyelmen kívül van
+hagyva. Ez a lista a Preferences > Team > Ignored Resources alatt állítható be:
+\begin{figure}[H]
+\includegraphics[width=150px,keepaspectratio]{09-IgnoredResources.eps}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{EGit}
+\framesubtitle{Hello World}
+\begin{figure}[H]
+\includegraphics[width=150px,keepaspectratio]{11-CommitDialog.eps}
+\end{figure}
+Végül a Team -> Commit menüponttal commitolhatjuk (helyben) a file-okat.
+\end{frame}
+
+\begin{frame}
+\frametitle{EGit}
+\framesubtitle{Hello World}
+\begin{figure}[H]
+\includegraphics[width=300px,keepaspectratio]{16-ShowChange.eps}
+\end{figure}
+A Show In -> History egy gitk jellegû interfészt ad.
+\end{frame}
+
+\begin{frame}
+\frametitle{EGit}
+\framesubtitle{Hosting példa: GitHub}
+\begin{itemize}
+\item Miért van szükség hostingra elosztott környezetben?
+\item Hosting példák: Gitorious, repo.or.cz, GitHub
+\item A GitHub jellemzõi
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{EGit}
+\framesubtitle{Hosting példa: GitHub}
+\begin{figure}[H]
+\includegraphics[width=200px,keepaspectratio]{Egit-0.6-001-CreateRepoAtGithub.eps}
+\end{figure}
+Új repó létrehozása a GitHub-on.
+\end{frame}
+
+\begin{frame}
+\frametitle{EGit}
+\framesubtitle{Hosting példa: GitHub}
+\begin{figure}[H]
+\includegraphics[width=184px,keepaspectratio]{Egit-0.6-002-CloneUrl.eps}
+\end{figure}
+Kapunk egy clone URL-t az új repositoryhoz.
+\end{frame}
+
+\begin{frame}
+\frametitle{EGit}
+\framesubtitle{Eclipse ssh konfiguráció}
+\begin{figure}[H]
+\includegraphics[width=200px,keepaspectratio]{Egit-0.6-003-SshPreferences.eps}
+\end{figure}
+Kattintsunk a Window > Preferences menüpontra és nézzük meg az SSH2 home
+beállítását (Linuxon ez ~/.ssh, Windowson kevésbé egyértelmû), az ssh
+kulcsunkat a megadott könyvtár kell tartalmazza (a GitHub account beállításnál
+tölthetünk fel kulcsot). 
+\end{frame}
+
+\begin{frame}
+\frametitle{EGit}
+\framesubtitle{Az elsõ push}
+\begin{figure}[H]
+\includegraphics[width=150px,keepaspectratio]{Egit-0.6-004-PushDialog.eps}
+\end{figure}
+Válasszuk a Team > Push menüpontot, használjuk ki a GitHub Clone URL-t, a
+felhasználónév legyen git, a jelszó ingyenes account esetén legyen üres.
+\end{frame}
+
+\begin{frame}
+\frametitle{EGit}
+\framesubtitle{A host key elfogadása}
+\begin{figure}[H]
+\includegraphics[width=220px,keepaspectratio]{Egit-0.6-005-AcceptHostKey.eps}
+\end{figure}
+Elsõ alkalommal el kell fogadjuk a kiszolgáló host kulcsát.
+\end{frame}
+
+\begin{frame}
+\frametitle{EGit}
+\framesubtitle{Az ssh kulcs jelszava}
+\begin{figure}[H]
+\includegraphics[width=198px,keepaspectratio]{Egit-0.6-006-PassPhrase.eps}
+\end{figure}
+Adjuk meg a kulcs létrehozásakor megadott jelszót.
+\end{frame}
+
+\begin{frame}
+\frametitle{EGit}
+\framesubtitle{Push: ref specifikáció}
+\begin{figure}[H]
+\includegraphics[width=150px,keepaspectratio]{Egit-0.6-007-PushRefSpecifications.eps}
+\end{figure}
+Egyelõre csak kattintsunk az Add all branches spec gombra, hogy az összes
+branch-ünk 1:1-be legyen leképezve a távoli repository-ba.
+\end{frame}
+
+\begin{frame}
+\frametitle{EGit}
+\framesubtitle{Push: elõnézet}
+\begin{figure}[H]
+\includegraphics[width=200px,keepaspectratio]{Egit-0.6-008-PushConfirmation.eps}
+\end{figure}
+A Next-re kattintva látjuk mi fog történni.
+\end{frame}
+
+\begin{frame}
+\frametitle{EGit}
+\framesubtitle{Push: eredmény}
+\begin{figure}[H]
+\includegraphics[width=200px,keepaspectratio]{Egit-0.6-009-PushResult.eps}
+\end{figure}
+A Finish után pedig már az eredményt látjuk.
+\end{frame}
+
+\begin{frame}
+\frametitle{EGit}
+\framesubtitle{Push: webes eredmény}
+\begin{figure}[H]
+\includegraphics[width=200px,keepaspectratio]{Egit-0.6-010-PushResultOnGithub.eps}
+\end{figure}
+A böngészõben megnézhetjük a webes felületen a távoli repository állapotát.
+\end{frame}
+
+\begin{frame}
+\frametitle{Gerrit}
+\framesubtitle{Háttér}
+\begin{itemize}
+\item Mondrian: p4 code review (Google internal, pl. bigtable - ismerõs lehet az Earth-bõl - miatt)
+\item Rietveld: App Engine-en fut, SVN
+\item Gerrit: eredetileg patchek a Rietveld-hez, majd fork (vita az access controlról)
+\item Gerrit2: újraírás Python helyett Java nyelven
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Gerrit}
+\framesubtitle{Részletek}
+\begin{itemize}
+\item App Engine helyett J2EE servlet
+\item SQL adatbázisban tárolja a további információkat
+\item kb. 30 fejlesztõ
+\item Webes felület
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Gerrit}
+\framesubtitle{Példa}
+\begin{itemize}
+\item Review kérése:
+\begin{verbatim}
+git push egit.eclipse.org:29418/jgit.git \
+	HEAD:refs/for/master
+\end{verbatim}
+\item Review után a patch frissítése (ugyanaz, ld. Change-Id):
+\begin{verbatim}
+git push egit.eclipse.org:29418/jgit.git \
+	HEAD:refs/for/master
+\end{verbatim}
+\item Review után a patch merge-ölése:
+\begin{verbatim}
+git push egit.eclipse.org:29418/jgit.git \
+	HEAD:refs/heads/master
+\end{verbatim}
+\item Tipikusan a merge hibát dob server-oldalon ha weben nem szavazott rá senki.
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Gerrit}
+\framesubtitle{Change-Id}
+\begin{itemize}
+\item commit-msg hook adja hozzá a commit message végéhez, például:
+\begin{verbatim}
+Ic8aaa0728a43936cd4c6e1ed590e01ba8f0fbf5b
+\end{verbatim}
+\item Azért szükséges, mivel így egyedileg lehet azonosítani az összetartozó, de eltérõ tartalmú commitokat.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Gerrit}
+\framesubtitle{Webes felület: pending changes}
+\begin{figure}[H]
+\includegraphics[width=300px,keepaspectratio]{gerrit-list.eps}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{Gerrit}
+\framesubtitle{Webes felület: hozzászólások}
+\begin{figure}[H]
+\includegraphics[width=250px,keepaspectratio]{gerrit-comments.eps}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{Hivatkozások}
+\begin{itemize}
+\item Innovations in git - \url{http://gitster.livejournal.com/16077.html}
+\item Linus standupja - \url{http://www.youtube.com/watch?v=4XpnKHJAok8}
+\item Rietveld - \url{http://code.google.com/p/rietveld/}
+\item EGit User Guide - \url{http://wiki.eclipse.org/EGit/User\_Guide}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Elérhetõségek}
+\begin{itemize}
+\item JGit: \url{http://eclipse.org/jgit/}
+\item EGit: \url{http://eclipse.org/egit/}
+\item Gerrit: \url{http://code.google.com/p/gerrit/}
+\item Levlista, fórum, bugzilla: \url{http://eclipse.org/jgit/support/}
+\item A diák elérhetõsége: \url{http://vmiklos.hu/odp/}
+\end{itemize}
+\end{frame}
+
+\end{document}

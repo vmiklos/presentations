@@ -1,0 +1,332 @@
+\documentclass[hyperref={pdfpagelabels=false}]{beamer}
+\author{Vajna Miklós}
+
+\setbeamertemplate{background canvas}[vertical shading][bottom=white,top=structure.fg!25]
+
+\usetheme{Warsaw}
+\setbeamertemplate{headline}{}
+\setbeamertemplate{footline}[page number]
+\setbeamersize{text margin left=0.5cm}
+  
+\usepackage[magyar, english]{babel}
+\usepackage{times}
+\usepackage[latin2]{inputenc}
+\usepackage[T1]{fontenc}
+
+\begin{document}
+
+\title{OpenOffice.org fejlesztés \\ a Google SoC keretében}
+\date{2010. október 8.}
+
+\frame{\titlepage}
+
+\begin{frame}
+\frametitle{Bevezetõ}
+\begin{itemize}
+\item A Google SoC-ról
+\item Az OpenOffice.org fejlesztésérõl
+\item 2010-es projekt: RTF export fejlesztés
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Google SoC}
+\begin{itemize}
+\item pályázati lehetõség
+\item szervezet pályázhatnak, projektötletekkel
+\item tanulók pályázhatnak, az ötletek alapján saját kidolgozott projektekkel
+\item szabad szoftverek fejlesztése, de a tanuló pénzt kapnak a Google-tõl
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{OpenOffice.org fejlesztés}
+\begin{itemize}
+\item kihívás: nagy projekt (split build még nem upstream)
+\item 8 millió kódsor (leginkább C++)
+\item fordítás trükközve is legalább 4-5 óra
+\item forráskód mérete kb. 4 GB
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{OpenOffice.org fejlesztés}
+\framesubtitle{LibreOffice vs. OpenOffice.org}
+\begin{itemize}
+\item Novell/Redhat/Google/IBM/etc. által szponzorált patchset / fork
+\item 15+ fejlesztõ
+\item Szabadabb license-elés (fejleszõknek nem kell copyright-ot átadni)
+\item Szabadabb politika (felhasználóknak nincs regisztráció)
+\item Gyakorlatilag az összes Linux disztribúció ezt használja
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{OpenOffice.org fejlesztés}
+\framesubtitle{LibreOffice vs. OpenOffice.org: fejlesztõi szemmel}
+Fordítás:
+\begin{itemize}
+\item OpenOffice.org
+\begin{verbatim}
+./configure --with-use-shell=bash \
+	--disable-build-mozilla \
+	--with-jdk-home=/usr/lib/jvm/java-1.5.0-gcj \
+	--with-system-mozilla=mozilla \
+	--with-openldap \
+	--disable-binfilter --disable-epm
+make
+export LOCALINSTALLDIR=~/git/gsoc/\
+	upstream/myhack-install
+cd ~/git/gsoc/\
+	upstream/myhack/instsetoo_native/util
+rm -rf ../../../myhack-install
+dmake openoffice_en-US PKGFORMAT=installed
+\end{verbatim}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{OpenOffice.org fejlesztés}
+\framesubtitle{LibreOffice vs. OpenOffice.org: fejlesztõi szemmel}
+Fordítás:
+\begin{itemize}
+\item LibreOffice
+\begin{verbatim}
+./configure --with-distro=Frugalware
+make
+make dev-install
+\end{verbatim}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{RTF export fejlesztés}
+\begin{itemize}
+\item ötlet: az RTF sokban hasonlít a doc/docx-re (Microsoft találmány)
+\item a doc / docx exporternek már van egy közös alapja
+\item készítsünk egy új exportert erre a közös alapra építve
+\item cél: tudjon mindent amit a régi exporter, kisebb méret, új funkciók
+\item integráció: Go-OO 3.3 / OpenOffice.org 3.4 (várhatóan)
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{RTF export fejlesztés}
+\framesubtitle{Könyvjelzõk}
+Régi:
+\begin{figure}[H]
+\includegraphics[width=200px,keepaspectratio]{pic/bookmark-old.png}
+\end{figure}
+Új:
+\begin{figure}[H]
+\includegraphics[width=100px,keepaspectratio]{pic/bookmark-new.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{RTF export fejlesztés}
+\framesubtitle{Karakter tulajdonságok}
+Régi:
+\begin{figure}[H]
+\includegraphics[width=150px,keepaspectratio]{pic/charprops-old.png}
+\end{figure}
+Új:
+\begin{figure}[H]
+\includegraphics[width=150px,keepaspectratio]{pic/charprops-new.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{RTF export fejlesztés}
+\framesubtitle{Diagramok (és egyéb OLE objektumok)}
+Régi:
+\begin{figure}[H]
+\includegraphics[width=120px,keepaspectratio]{pic/chart-old.png}
+\end{figure}
+Új:
+\begin{figure}[H]
+\includegraphics[width=120px,keepaspectratio]{pic/chart-new.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{RTF export fejlesztés}
+\framesubtitle{Rajzok}
+Régi:
+\begin{figure}[H]
+\includegraphics[width=120px,keepaspectratio]{pic/draw-old.png}
+\end{figure}
+Új:
+\begin{figure}[H]
+\includegraphics[width=120px,keepaspectratio]{pic/draw-new.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{RTF export fejlesztés}
+\framesubtitle{Ûrlapok}
+Régi:
+\begin{figure}[H]
+\includegraphics[width=150px,keepaspectratio]{pic/forms-old.png}
+\end{figure}
+Új:
+\begin{figure}[H]
+\includegraphics[width=150px,keepaspectratio]{pic/forms-new.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{RTF export fejlesztés}
+\framesubtitle{Sorszámozás}
+Régi:
+\begin{figure}[H]
+\includegraphics[width=200px,keepaspectratio]{pic/linenum-old.png}
+\end{figure}
+Új:
+\begin{figure}[H]
+\includegraphics[width=200px,keepaspectratio]{pic/linenum-new.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{RTF export fejlesztés}
+\framesubtitle{Matematikai kifejezések}
+Régi:
+\begin{figure}[H]
+\includegraphics[width=100px,keepaspectratio]{pic/math-old.png}
+\end{figure}
+Új:
+\begin{figure}[H]
+\includegraphics[width=100px,keepaspectratio]{pic/math-new.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{RTF export fejlesztés}
+\framesubtitle{Matematikai kifejezések szerkesztése}
+\begin{figure}[H]
+\includegraphics[width=250px,keepaspectratio]{pic/math-new-edit.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{RTF export fejlesztés}
+\framesubtitle{Speciális oldaltörések}
+Teszt: sima, jobb, bal (ez utóbbi dupla kell, hogy legyen) \\ Régi:
+\begin{figure}[H]
+\includegraphics[width=250px,keepaspectratio]{pic/pagebreak-special-old.png}
+\end{figure}
+Új:
+\begin{figure}[H]
+\includegraphics[width=250px,keepaspectratio]{pic/pagebreak-special-new.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{RTF export fejlesztés}
+\framesubtitle{Oldalszámozás}
+Régi:
+\begin{figure}[H]
+\includegraphics[width=250px,keepaspectratio]{pic/pagenum-restart-old1.png}
+\end{figure}
+\begin{figure}[H]
+\includegraphics[width=200px,keepaspectratio]{pic/pagenum-restart-old2.png}
+\end{figure}
+Új:
+\begin{figure}[H]
+\includegraphics[width=250px,keepaspectratio]{pic/pagenum-restart-new1.png}
+\end{figure}
+\begin{figure}[H]
+\includegraphics[width=200px,keepaspectratio]{pic/pagenum-restart-new2.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{RTF export fejlesztés}
+\framesubtitle{Képek Wordpadben}
+Régi:
+\begin{figure}[H]
+\includegraphics[width=75px,keepaspectratio]{pic/picture-wp-old.png}
+\end{figure}
+Új:
+\begin{figure}[H]
+\includegraphics[width=75px,keepaspectratio]{pic/picture-wp-new.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{RTF export fejlesztés}
+\framesubtitle{Postit mezõ}
+Régi:
+\begin{figure}[H]
+\includegraphics[width=250px,keepaspectratio]{pic/postit-old.png}
+\end{figure}
+Új:
+\begin{figure}[H]
+\includegraphics[width=250px,keepaspectratio]{pic/postit-new.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{RTF export fejlesztés}
+\framesubtitle{Szakaszok: oszloptörés}
+Régi:
+\begin{figure}[H]
+\includegraphics[width=250px,keepaspectratio]{pic/section-column-break-old.png}
+\end{figure}
+Új:
+\begin{figure}[H]
+\includegraphics[width=200px,keepaspectratio]{pic/section-column-break-new.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{RTF export fejlesztés}
+\framesubtitle{Védett szakaszok}
+Régi:
+\begin{figure}[H]
+\includegraphics[width=250px,keepaspectratio]{pic/sections-readonly-old.png}
+\end{figure}
+Új:
+\begin{figure}[H]
+\includegraphics[width=250px,keepaspectratio]{pic/sections-readonly-new.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{RTF export fejlesztés}
+\framesubtitle{Beágyazott táblázatok}
+Régi:
+\begin{figure}[H]
+\includegraphics[width=250px,keepaspectratio]{pic/table-nested-old.png}
+\end{figure}
+Új:
+\begin{figure}[H]
+\includegraphics[width=250px,keepaspectratio]{pic/table-nested-new.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{RTF export fejlesztés}
+\framesubtitle{Tartalomjegyzék}
+Régi:
+\begin{figure}[H]
+\includegraphics[width=250px,keepaspectratio]{pic/toc-old.png}
+\end{figure}
+Új:
+\begin{figure}[H]
+\includegraphics[width=250px,keepaspectratio]{pic/toc-new.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\frametitle{Hivatkozások}
+\begin{itemize}
+\item LibreOffice: \url{http://www.documentfoundation.org/develop/}
+\item SoC: \url{http://code.google.com/soc/}
+\item Új RTF filter: \url{http://cgit.freedesktop.org/~vmiklos/ooo-gsoc/}
+\item Diák: \url{http://vmiklos.hu/odp/}
+\end{itemize}
+\end{frame}
+
+\end{document}

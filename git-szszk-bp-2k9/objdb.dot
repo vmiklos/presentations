@@ -1,0 +1,26 @@
+digraph {
+node [style=filled,color="#cd5c5c"]
+C1[label="eaba9a3"]
+C2[label="21026ca"]
+C2 -> C1 [label="parent"]
+
+node [style=filled,color="#8470ff"]
+T1[label="b4c3cc9: /"]
+T2[label="e68e3fb: /"]
+S1[label="df2b8fc: dir"]
+S2[label="8487409: dir"]
+C1 -> T1 [label="tree"]
+C2 -> T2 [label="tree"]
+
+node [style=filled,color="#adff2f"]
+B1[label="e69de29"]
+B2[label="7898192"]
+T1 -> S1[label="tree"]
+T2 -> S2[label="tree"]
+S1->B1[label="blob"]
+S2->B2[label="blob"]
+
+node [style=filled,color="#ffd700"]
+TAG[label="d2b8c00"]
+TAG -> C2[label="tag"]
+}

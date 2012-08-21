@@ -1,0 +1,405 @@
+\documentclass[a4paper]{report}
+
+\usepackage{t1enc}
+\usepackage{alltt}
+\usepackage[latin2]{inputenc}
+\usepackage[magyar]{babel}
+
+\title{Verziókezelés a Git használatával}
+\author{Vajna Miklós <vmiklos@frugalware.org>}
+
+\begin{document}
+
+\tableofcontents
+
+\chapter{Vajna Miklós: Verziókezelés a Git használatával}
+
+\section{Miért jó a verziókezelés?}
+
+Mielõtt megpróbálnánk megválaszolni ezt a meglehetõsen összetett
+kérdést, próbáljuk meg részekre bontani. Bevezetésként legyen elég
+annyi, hogy jóval több ember használ verziókezelést, mint ahány tud
+errõl. Gondoljunk csak arra, mikor kedvenc szövegszerkesztõnk
+\emph{mentés másként} funkcióját használjuk. Meglehetõsen kezdetleges
+módszer, de valójában máris verziókezelésrõl van szó: érintetlenül
+hagyjuk az eredeti példányt, és egy újat hozunk létre. Márpedig pont ez a
+verziókezelés lényege: egy projekt különbözõ állapotait nyilvántartani.
+
+De hogy ne ragadjunk le a legtriviálisabb esetnél, a verziókezelés
+gyakorlatilag elengedhetetlen minden olyan munka esetén ahol több ember
+dolgozik ugyanazon a projekten. Ha ugyanahhoz a fájlhoz ketten nyúlnak
+hozzá egyszerre, akkor a verziókezelõ ezt vagy automatikusan kezeli,
+vagy segítséget nyújt az ilyen jellegû probléma feloldásához. Fontos
+megjegyezni, hogy a jó verziókezelõ nem feltétlenül old meg mindent
+helyettünk, cserébe viszont saját maga kérdés nélkül nem hibázhat. Ha
+már hosszabb ideig használjuk a gitet, észrevehetjük, hogy vannak olyan
+esetek amikor a git ütközést észlel, és a segítségünket kéri, míg
+ugyanazt a patch-et pl. a \emph{patch(1)} egy figyelmeztetés mellett
+elfogadja. Ez pontosan azért van, mert jobb, ha nekünk kell feloldani
+egy ütközést, mint azt hinni, hogy minden problémamentesen lefutott,
+majd jóval késõbb észrevenni (ha egyáltalán észrevesszük) az inkorrekt
+eredményt.
+
+A verziókezelés ezen kívül segíti a hibakeresést. Ha van egy szkriptünk
+ami reprodukálja a hibát, akkor a jó verziókezelõ bináris kereséssel
+gyorsan megtalálja az elsõ hibás commitot.
+
+Végezetül a verziókezelõ dokumentációs eszköz. Igényes commit üzenetek
+esetén egy-egy kiadás esetén a változások listáját már generálni lehet,
+illetve késõbb a forráskód minden egyes sorához részletes
+többlet-információt találhatunk, ha a forráskódbeli megjegyzések nem
+lennének elegendõek.
+
+Természetesen verziókezelõ nélkül is lehet élni, legfeljebb nem érdemes.
+Ennek legkezdetlegesebb kiküszöbölése mikor áttelefonálunk a kollégának,
+hogy \emph{légyszi ne nyúljál most hozzá, mert dolgozom rajta}. Vagy ha
+az OpenOffice.org \emph{változások követése} funkcióját használjuk, mely
+pár száz változtatás esetén már teljes bizonyossággal használhatatlan.
+Szövegfájloknál megoldható a kézi 3-utas (3-way) merge, de egy idõ után
+ezt kézzel csinálni szintén unalmas játék. Itt jegyezném meg, hogy ha
+belegondolunk, alapvetõ igény, hogy más-más típusú fájlokat más
+algoritmussal merge-öljünk, mégis a legtöbb verziókezelõbõl kispórolták
+ezt a funkciót, és a merge algoritmus a verziókezelõ egyik leginkább
+bedrótozott modulja. Természetesen a git szakít ezzel a hagyománnyal és
+kedvenc programozási nyelvünkön írhatunk hozzá merge meghajtókat.
+
+Hasonlóan érdekes ámde értelmetlen próbálkozás a CVS névre hallgató,
+verziókezelõnek csúfolt program. A git szempontjából elemezve a
+legnagyobb probléma vele, hogy nem állítható vissza maradéktalanul a
+projekt egy-egy idõpillanatban fennálló állapota, abból következõen,
+hogy nem a projekt teljes állapotát tárolja, hanem egy-egy fájl
+változásait. A \emph{cvsps(1)} ezt próbálja meg korrigálni --
+több-kevesebb sikerrel.
+
+Még egy általános problémát említenék, amiben a git szintén nem
+érintett. Elosztott környezetben verziószámokat használni egy-egy
+állapotra nem túl okos megfontolás. Ha több fejlesztõ dolgozik egy
+projekten akkor tipikusan egy ember feladata szokott lenni hivatalos
+kiadásokat készíteni, azoknak verziószámot adni már van értelme. De a
+köztes állapotokat valamilyen egyedi módon kell megcímezni, hiszen az
+1.0 verzió után ha két fejlesztõ is commitolt egy-egy változtatást, nem
+hívhatjuk mind a kettõt 1.0.1-nek, hiszen a kettõ nem azonos.
+
+\section{Az elosztott verziókezelõk elõnyei}
+
+A git legnagyobb elõnye, hogy elosztott. Sok más elosztott verziókezelõ
+is létezik, és legtöbbjük sokkal több funkcionalitást nyújt, mint
+bármelyik központi verziókezelõ. Sok olyan gitrõl szóló leírás látott
+napvilágot, amely nagyrészt az elosztott verziókezelõk elõnyeit
+hangsúlyozza, úgy feltüntetve, mintha ez a git kizárólagos elõnye lenne.
+Ezzel két probléma van. Egyrészt ha erre a csúsztatásra rájön az olvasó,
+valószínûleg tovább sem olvassa a cikket, mert nem hiteles. A másik
+probléma, hogy a git még az elosztott verziókezelõk mezõnyében is
+hihetetlen elõnyökkel bír, és az ilyesfajta cikkek, ezeket az elõnyöket
+nem fejtik ki, pedig a git valójában ettõl igazán innovatív, nem azért,
+mert sikerült a Linux kernel atyjának egy újabb elosztott verziókezelõt
+implementálnia.
+
+Ennek ellenére nem feltételezhetjük, hogy mindenki tisztában van az
+elosztott verziókezelõk elõnyeivel, így röviden összefoglaljuk ezeket
+is. Talán a legfontosabb különbség, hogy egy repó letöltésekor nem csak
+az utolsó verzió kerül letöltésre, hanem a teljes repó, így minden repó
+egyenlõ, ettõl elosztott a rendszer, hogy nincs egy kijelölt központ.
+Ennek a következménye, hogy számos gyakran használt mûvelet (blame, log,
+diff, merge) nagyságrendekkel gyorsabb. Ez nagyon fontos, például ha a
+blame funkció 10 másodpercnél több idõt vesz igénybe, akkor
+gyakorlatilag értelmetlen, a legtöbb eseten ennél több idõt nem érdemes
+az egészre vesztegetni, akkor már inkább megnézzük az adott fájl
+történetét, abból is ki lehet bogarászni a számunkra érdekes
+információt. Tehát ha bizonyos funkciók lassúak, a felhasználók nem
+fogják használni, felesleges volt idõt vesztegetni az implementálásukra.
+
+Az elõzõekbõl következik, hogy a legtöbb mûvelet így nem igényel
+hálózati kapcsolatot, eltûnik a központi repó, mint egyetlen
+hibalehetõség (single point of failure) problémája, megszûnik a commiter
+fogalma (hiszen mindenki commitolhat a saját repójába), minden egyes
+letöltés implicit módon egy backupot készít a teljes repóról. Az
+elõzõekbõl nem feltétlenül következik, de a git esetén a branch
+létrehozása és merge-ölése is nagyon egyszerûvé válik, egyrészt mert
+erre a kezdetektõl odafigyeltek, másrészt a helyi commitok miatt.
+
+\section{A git elõnyei}
+
+Csak a git elõnyeirõl külön könyvet lehet írni, így a teljesség igénye
+nélkül említünk párat, ami remélhetõleg arra már elég lesz, hogy az
+olvasó motivációt érezzen a git kipróbálásához.
+
+Központi verziókezelõk (például Subversion) esetén is létezik a branch
+és a merge fogalma, de meglehetõsen korlátozottan. Készíthetünk egy
+branch-et, abban dolgozhatunk, a trunk-ot merge-ölhetjuk bele sokszor,
+majd ha készen vagyunk, akkor egy külön merge paranccsal merge-ölhetjük
+a branch-ünket a trunk-ba, és innentõl hozzá ne nyúljunk a
+branch-ünkhöz, mert összedõl a világ. A gitnél természetesen minden
+branch egyenlõ és bármelyik branch-et bármelyik branch-be annyiszor
+merge-ölhetjük ahányszor jólesik. Összehasonlításképp például a darcs
+merge algoritmusa is enged elvileg ilyesmit, de nagyobb számú ütközés
+esetén általában végtelen ciklusba kerül. A bzr merge algoritmusa nem
+szenved ilyen problémával, de szinten be van drótozva a verziókezelõbe,
+az algoritmust nem cserélhetjük le a sajátunkra egykönnyen.
+
+A rerere nevû szolgáltatás azt biztosítja, hogyha egyszer feloldottunk
+egy ütközést, akkor ha legközelebb egy ugyanolyan ütközést kapunk, akkor
+már automatikusan feloldja a rendszer. Ez rendkívül hasznos funkció
+patchsetek karbantartásakor.
+
+A git implicit módon, futási idõben és utólagosan ismeri fel a fájlok
+másolását és átnevezését. Mi több, ezt nem csak teljes fájlokkal, hanem
+nagyobb méretû kódblokkokkal is meg tudja tenni. Jelen pillanatban (2009
+október) tudomásunk szerint nincs még egy verziókezelõ, amely ilyen
+funkcionalitást nyújtana.
+
+Példa, melyben az \emph{a.c} fájlból átmásoltuk az \emph{ip\_get}
+függvényt a \emph{b.c} fájlba, majd a git blame felismeri, hogy annak az
+utolsó tényeleges módosítása még akkor volt, mikor az régi fájlban volt:
+
+\begin{verbatim}
+$ git blame -C b.c
+...
+607001b8 b.c (Miklos 02:21:22 32)         g_free( t );
+607001b8 b.c (Miklos 02:21:22 33) }
+607001b8 b.c (Miklos 02:21:22 34)
+^56bbfb0 a.c (Miklos 02:21:14 35) ipst_t *ip_get( char *ip_txt )
+^56bbfb0 a.c (Miklos 02:21:14 36) {
+^56bbfb0 a.c (Miklos 02:21:14 37)         unsigned int ip;
+^56bbfb0 a.c (Miklos 02:21:14 38)         ipstats_t *l;
+^56bbfb0 a.c (Miklos 02:21:14 39)         int p[4];
+\end{verbatim}
+
+A combined diff egy olyan patch szintaxis, mely merge-ök eredményét
+tudja bemutatni, egyszerre összehasonlítva az eredeti saját, az eredeti
+másik, és a végsõ verziót.
+
+A git grep hasonlóan mûködik a \emph{grep(1)} programhoz, viszont
+rekurzív grepelés esetén csak a követett fájlokat veszi figyelembe.
+
+\section{Felhasználóbarátság és pokol}
+
+A git tipikus UNIX eszköz, meredek tanulási görbével, azonban a
+szükséges tanulási szakasz után hihetetlenül hatékony eszközt kapunk. Ha
+az olvasó találkozott a \emph{vim}, \emph{emacs}, \emph{mutt} vagy
+hasonló szoftverekkel, csak, hogy néhány példát említsünk, akkor ismeri
+ezt a szituációt. Ha jobban megvizsgáljuk az okokat, az egyik leginkább
+szembetûnõ a bõség zavara. A git 1.6.4-es verziójához összesen több,
+mint 600-an küldtek be módosításokat, így számos munkafolyamatot és
+speciális eseten támogat, melyek között elsõre nehéz lehet az
+eligazodás. A hivatalos dokumentáció elsõsorban referencia jellegû, bár
+ez az utóbbi 2 évben jelentõsen javult. Ezen kívül szintén az utóbbi
+egy-két évben több gittel foglalkozó könyv is megjelent, javítva az arányt.
+
+\section{Adatszerkezetek}
+
+A projekt történetét tároló objektum-adatbázis adatszerkezetei meglepõen
+egyszerûek. Négy féle objektum-típus van. A blob egy fájl egy adott
+változatát tárolja. A tree (fa) egy pozitív elemszámú listát tárol,
+melynek elemei tree-k, vagy blobok lehetnek. Ezzel már el is tudjuk
+tárolni a projekt egy pillanatbeli állapotát. Mivel az állapotokat össze
+akarjuk kötni, bevezetésre került a commit, mely pontosan egy tree-re
+mutat, és nulla vagy több szülõje lehet. Az utolsó típus a tag, ennek
+neve van, valamint egy objektumra mutat, ami tipikusan commit szokott
+lenni.
+
+Látjuk tehát, hogy minden egyes commit tárolja a projekt teljes
+állapotát, valamint az egyes állapotok közötti változások (diff) mindig
+futási idõben kerül kiszámításra. Ennek ellenére néhány esetben
+praktikus mégis úgy gondolni a commitra, mintha csak egy patch lenne az
+elõzõ commithoz képest, a rebase kapcsán ez a szemléletmód még hasznos
+lesz.
+
+A mutatók minden esetben a hivatkozott tartalom sha1 értékét
+tartalmazzák, aminek több elõnye is van: ha két commit között csak egy
+fájl változott, akkor a legtöbb tree és egy kivételével az összes blob
+objektum újra felhasználható; a módosítás nélküli fájlmásolások és
+átnevezések detektálása triviális; valamint a legutolsó commit sha1-ét
+meghatározza a projekt korábbi összes állapota, így ha digitálisan
+aláírunk egy kiadás alkalmával létrehozott taget, akkor az egyben
+hitelesíti a teljes korábbi történetet (kriptográfiai biztonságosság).
+
+A git egyik legnagyobb elõnye a fenti adatszerkezetek robusztussága Ez
+olyannyira igaz, hogy ezeket az adatszerkezeteket kezelõ könyvtárat
+(libgit), amely C nyelven sose íródott meg önálló formában, megírták már
+számos nyelven (Python, Ruby, Java, C\#).
+
+Az adatszerkezeteken kívül egy repóban még vannak referenciák, melyik a
+tag-hez hasonló módon egy-egy commitra mutatnak, viszont egyezményesen
+ha egy új commit születik, akkor automatikusan az új commitra illik
+állítani a referenciát; symref-ek, amik olyan mutatók amik ref-ekre
+mutatnak; hook-ok (hurkok) melyek bizonyos események bekövetkeztekor
+automatikusan végrehajtódnak; reflogok, melyek dokumentálják, hogy a
+referenciák milyen objektumokra mutattak korábban -- ez kifejezetten
+hasznos patchsetek karbantartásakor; egy config (beállítási) fájl,
+valamint az index, melyrõl késõbb még részletesen szó lesz.
+
+Példa a reflog használatára:
+
+\begin{verbatim}
+$ git checkout "@{10 seconds ago}"
+$ git checkout master
+$ git log -g --pretty=oneline
+402de8e HEAD@{0}: checkout: moving from 402de8e to master
+402de8e HEAD@{1}: checkout: moving \
+	from master to @{10 seconds ago}
+402de8e HEAD@{2}: commit: B
+c820060 HEAD@{3}: commit (initial): A
+\end{verbatim}
+
+Egy gyakori kérdés, hogy mi a különbség a merge és a rebase között. Ha a
+git adatszerkezeteit nem ismerjük, akkor erre nehéz is válaszolni. A
+fenti bekezdések alapján már viszont megérthetjük a különbséget, az
+alábbi ábrák alapján. Vegyünk egy kiindulási állapotot:
+
+\begin{verbatim}
+      A---B---C topic
+     /
+D---E---F---G master
+\end{verbatim}
+
+Tehát a D..G commitok a projekt master branch-ét jelképezik, a fejlesztõ
+pedig akkor, mikor az E commit volt a legutolsó a master branch-ben,
+nyitott egy új topic (téma) branch-et és ott létrehozott 3 commitot. Az
+ilyen topic branch-ek azért nagyon hasznosak, mert elindíthatjuk õket
+egy olyan állapotból amikor tudjuk, hogy a master branch biztosan
+stabil, dolgozhatunk nyugodtan, úgy, hogy mások nem zavarják a munkánkat,
+majd mikor az adott témát befejeztük, merge-ölhetjük a topic branch-et a
+masterbe.
+
+Nézzük mi történik rebase esetén:
+
+\begin{verbatim}
+              A'--B'--C' topic
+             /
+D---E---F---G master
+\end{verbatim}
+
+Azt látjuk, hogy az A..C commitokat patch-ként tekintettük, elmentettük,
+az A..C commitokat eldobtuk, majd a G commitra raktuk rá a patch-eket,
+ezzel új A..C commitokat létrehozva. Mivel a régi A szülõje az E volt,
+az újé a G, emiatt az A commit sha1-e más lesz. Ez akkor hasznos, ha
+például az A..C commitok egy patchsetet képeznek, és a projekt 1.0
+verziójáról a 2.0 verzióra akarjuk azt frissíteni. A rebase közben a git
+minden olyan patchnél amit nem sikerült alkalmazni megáll, és
+lehetõséget biztosít, hogy feloldjuk az ütközéseket. Ez a megoldás szép
+historyt generál, hiszen úgy tûnik, mintha eredetileg is a 2.0-hoz
+készült volna a patchset, vagy például egy hibát is javíthattunk közben
+a B commitban, és azt hihetik a többiek, hogy eredetileg is úgy
+(tökéletesen) sikerült.
+
+Felmerülhet a kérdés, hogy jó-e, ha az ilyen hibákat takargatják. Ha
+belegondolunk, hogy a késõbbi hibakereséshez fontos, hogy minden
+\emph{végsõ} (ami egy logikai fogalom, tehát például a master branch-be
+kerülõ) commit olyan kell legyen, hogy lefordul a forráskód, akkor el
+kell ismernünk, hogy ez egy hasznos funkció. Ha a karbantartó kap egy jó
+patchsetet amit be szeretne olvasztani, de van egy olyan patch ami
+fordítási hibát okozna, akkor ezt így ki tudja javítani.
+
+Nézzük mi lesz merge esetén:
+
+\begin{verbatim}
+      A---B---C---H topic
+     /          /
+D---E---F---G master
+\end{verbatim}
+
+Azt látjuk, hogy egyetlen új commit született, aminek két szülõje van.
+Így maradandó nyoma marad, hogy az A..C commitok egy külön branch-ben
+készültek. Ennek is megvan a maga elõnye. Ha például valaki egy másik
+patchsetet készít a régi C commitra alapozva, akkor azt triviális
+rebase-elni a H commitra, míg ha a régi C-rõl akar rebase-elni az új
+C-re azt kézzel kell megadnia, hiszen a repónak nincs információja
+arról, hogy az új C commitnak volt régi változata is.
+
+\section{Használat külsõsként}
+
+Ez az a szituáció, mikor találtunk egy projektet, tetszik ahogy mûködik,
+de pár funkciót meg akarunk benne valósítani. Ilyenkor sorban
+megvalósítjuk a funkciókat, például minden egyes funkciót egy-egy
+commitban. Ahhoz viszont nem lesz jogunk, hogy a saját repónkból ezeket
+a commitokat a projekt repójába írjuk. Tehát külsõsök vagyunk. Ezt a
+módot is nagyon jól támogatja a git, a git format-patch paranccsal
+tudunk patchsetet generálni például egy branch csak helyben elérhetõ
+commitjaiból. Egy külsõs sose merge-öl, hanem mindig rebase-el. Ez is
+jól támogatott, a helyi commitok sorrendjét át tudjuk rendezni,
+darabolni tudjuk õket, összeolvasztani. A karbantartó oldalán pedig az
+emailben vagy fájlként megérkezett patchsetet a git am parancs tudja
+újra commitokká alakítani.
+
+\section{Parancsok}
+
+A git 1.6.4 145 paranccsal érkezik, ezt elsõre nehéz áttekinteni. A
+legszûkebb részhalmaz az a néhány, amit a git help jelenít meg, elõször
+ezekkel érdemes megismerkedni. Egy tágabb halmaz a \emph{porcelain}
+nevet viseli, mely a magas-szintû parancsokat tartalmazza. Ezek azok,
+amiket egy tipikus verziókezelõben elvártnak gondolunk. Végül egy másik
+nagy halmaz a \emph{plumbing} (csõvezeték) nevet viseli, mely
+alacsony-szintû parancsokat tartalmaz. Ezek paraméterezése, valamint a
+parancsok kimenete visszafele mindig kompatibilis, szkriptekbõl ezeket
+érdemes használni. Ezen parancsok létezésének eredménye az, hogy számos
+alternatív felhasználói felület is készült a githez.
+
+Egy érdekes kezdeményezés támogatása a gitben a fast-import illetve a
+fast-export parancs. Ezek a repó tartalmát egy verziókezelõ-független
+folyammá alakítják, és ilyen importer és exporter létezik más
+rendszerekhez is, például a bzr-hez, darcs-hoz, mercurialhoz.
+Nyilvánvaló elõnye, hogy így N verziókezelõ esetén csak 2N programot
+kell írni, és nem N*N-et.
+
+\section{Az index}
+
+Az index egy köztes réteg a munkakönyvtár és az objektum-adatbázis
+között. A munkakönyvtárban változtatjuk meg a fájlokat, majd ezen
+változtatások egy részét az indexbe rakjuk (staging), végül a commit
+csupán csak az index tartalmát másolja az objektum-adatbázisba.
+
+Új felhasználók gyakran elfelejtik ezt a fontos részletet. Ennek
+következménye például az, hogyha a git add paranccsal egy létezõ, a
+munkakönyvtárban módosított fájlt az indexhez adunk, a fájlt újra
+módosítjuk, majd commitolunk, akkor a fájl indexbeli verziója lesz
+commitolva, nem a munkakönyvtárbeli!
+
+Ez több szempontból is hasznos. Akkor például, ha egy fájlban két külön
+helyen két változtatást eszközöltünk, de a következõ commitba csak az
+egyiket szeretnénk berakni. Vagy a karbantartónak is hasznos: ha
+merge-öl és sok fájl változott, de csak egyben van ütközés akkor a többi
+fájl bekerül az indexbe és ha a munkakönyvtárat összehasonlítjuk az
+indexszel akkor csak a számunkra érdekes részt, az egyetlen ütközõ fájl
+változásait fogjuk látni, a többi változást nem.
+
+A három réteg (objektum-adatbázis, index, munkakönyvtár) közötti
+diffelés eszköze a git diff, git diff --cached és a git diff HEAD
+parancs:
+
+\begin{verbatim}
+              diff
+             +----+
+             |    |
+          +-----------+
+          | Objektum- |
+          |   tároló  |
+          +-----------+
+            |    |  diff --cached
+ diff HEAD  |  +-------+
+            |  | Index |
+            |  +-------+
+            |    |  diff
+          +----------+
+          |  Munka-  |
+          | könyvtár |
+          +----------+
+\end{verbatim}
+
+\section{Elérhetõségek}
+
+A szerzõ ezúton is elnézést kér, hogy sok -- a cikkben szereplõ -- témát
+csak érintõlegesen említett, mint az korábban szóba került, a témáról
+vastag könyvet lehetne írni, a cél leginkább a figyelemfelkeltés volt.
+Az alábbi linkek további kérdések esetén remélhetõleg segítséget
+nyújtanak.
+
+GIT honlap: http://git-scm.com/
+
+Levelezési lista: http://vger.kernel.org/vger-lists.html\#git
+
+IRC: \#git @ irc.freenode.net
+
+A diák és ezen cikk elérhetõsége: http://vmiklos.hu/odp/
+
+\end{document}

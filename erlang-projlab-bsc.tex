@@ -1,0 +1,163 @@
+\documentclass{beamer}
+
+\setbeamertemplate{background canvas}[vertical shading][bottom=white,top=structure.fg!25]
+
+\usetheme{Warsaw}
+\setbeamertemplate{headline}{}
+\setbeamertemplate{footline}{}
+\setbeamersize{text margin left=0.5cm}
+  
+\usepackage[english]{babel}
+
+\usepackage[latin1]{inputenc}
+
+\usepackage{times}
+\usepackage[T1]{fontenc}
+
+\begin{document}
+
+\title{Soros vonalon érkez\H{o} mérési adatok fogadása-{}feldolgozása Erlang alapú rendszerben}
+\author{Vajna Miklós}
+\date{2009. május 18.}
+
+\frame{\titlepage}
+
+\begin{frame}
+	\frametitle{Környezet leírása}
+	\begin{itemize}
+	\item{} BME Egészségügyi Mérnöki Tudásközpont
+	\item{} TaiDoc TD-{}3213 típusú vérnyomás-{} és vércukormér\H{o} készülék
+	\item{} Erlang R12B-{}5
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Feladatok leírása}
+\begin{itemize}
+
+\item{} Adatkábel elkészítése
+
+
+
+\item{} Protokoll visszafejtése
+
+
+
+\item{} Erlang kliensprogram írása
+
+
+
+\item{} Interaktív felhasználóbarát felület készítése, mely
+  többlet-{}szolgáltatásokat biztosít
+
+
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Megoldott feladatok}
+\framesubtitle{Erlang nyelv elsajátítása}
+\begin{itemize}
+
+\item{} általános párhuzamos programozási nyelv és futtatókörnyezet
+
+
+
+\item{} funkcionális nyelv
+
+
+
+\item{} labor szempontjából kényelmes választás néhány szolgáltatás miatt (bit
+  szintaxis, üzenetküldés)
+
+
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Megoldott feladatok}
+\framesubtitle{Kommunikáció soros porton}
+\begin{itemize}
+
+\item{} kommunikálás soros porton Erlang környezetben
+
+
+
+\item{} kábel elkészítése
+
+
+
+\item{} tesztelés a kereskedelmi programmal
+
+
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Megoldott feladatok}
+\framesubtitle{Protokoll visszafejtése}
+\begin{itemize}
+
+\item{} sniffer használata (man-{}in-{}the-{}middle módszer)
+
+
+
+\item{} keretszerkezet dokumentálása
+
+
+
+\item{} hasznos teher feltérképezése
+
+
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Megoldott feladatok}
+\framesubtitle{Saját kliensprogram elkészítése}
+\begin{itemize}
+
+\item{} prototípus készítése Python nyelven
+
+
+
+\item{} adatok fogadása soros portról Erlang környezetben
+
+
+
+\item{} adatok feldolgozása (pattern matching, bit syntax)
+
+
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Jöv\H{o}beli lehet\H{o}ségek}
+\begin{itemize}
+
+\item{} Feldolgozott adatokat adatbázisban tárolni
+
+
+
+\item{} Felhasználói interfészen egyéb adatok felvételére lehet\H{o}séget
+  biztosítani
+
+
+
+\item{} Több m\H{u}szer
+
+
+
+\item{} Elosztott rendszer
+
+
+\end{itemize}
+
+\end{frame}
+
+\end{document}

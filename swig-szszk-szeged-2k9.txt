@@ -1,0 +1,313 @@
+= Egyszerűsített wrapper és interfész generálás a SWIG segítségével
+Vajna Miklós
+2009. október 2.
+
+== A probléma
+
+* Napjainkban a fejlesztők fegyvertárában különböző programozási nyelvek
+  szerepelnek, melyek közül nincs legjobb vagy legrosszabb, csak adott
+  célra jobban és kevésbé megfelelő.
+* Egy-egy adott funkciót azonban mégis kizárólag egyetlen programozási
+  nyelven szeretnénk megvalósítani, a felesleges munkát elkerülendő.
+* Ebből adódik a probléma, hogy szeretnénk más nyelven megírt
+  könyvtárakat is használni.
+* Az előadás célja azt az esetet körüljárni, mikor scriptnyelvekből
+  (Python, Perl, PHP, stb.) C nyelven íródott függvényeket szeretnénk
+  meghívni.
+* A legtöbb programozási nyelvhez elérhető egy C API, ennek segítségével
+  olyan modulokat írhatunk, amelyből egyrészt hívhatunk más C
+  könyvtárakat, másrészt olyan speciális követelményeknek megfelelő C
+  függvényeket hozhatunk létre, amelyeket már meghívhatunk közvetlenül a
+  scriptnyelvből.
+
+== Hagyományos wrapper függvények
+
+* A megoldás tehát, hogy wrapper függvényeket írunk. Példa két szám
+  összeadására, ha azt C-ben írtuk és PHP-ből szeretnénk használni:
++
+----
+ZEND_NAMED_FUNCTION(wrap_cadd) {
+  int arg1 ;
+  int arg2 ;
+  zval **args[2];
+  int result;
+
+  if(ZEND_NUM_ARGS() != 2 ||
+    zend_get_parameters_array_ex(2, args)
+    != SUCCESS) {
+    WRONG_PARAM_COUNT;
+  }
+----
+
+== Hagyományos wrapper függvények
+
+----
+  convert_to_long_ex(args[0]);
+  arg1 = (int) Z_LVAL_PP(args[0]);
+
+  convert_to_long_ex(args[1]);
+  arg2 = (int) Z_LVAL_PP(args[1]);
+
+  result = (int)cadd(arg1,arg2);
+
+  ZVAL_LONG(return_value,result);
+  return;
+}
+----
+
+* Készen vagyunk? Nem, hiszen ezt lehetne automatizálni is!
+
+== A SWIG, mint speciális fordító
+
+* A SWIG tehát egy speciális C fordító, amely a C-ben írt könyvtárunkból
+  wrapper kódot fog gyártani, hogy ne kézzel kelljen azt. Ezt úgy
+  valósítja meg, hogy a C nyelvet kiterjeszti, így plusz információkat
+  adhatunk meg a kódban, és ezek segítségével már tényleg automatizálható
+  a wrapper készítés. A legfontosabb plusz információk:
+* Typemap-ek: pl. *egyszer* megadjuk, hogy egy int típusú változót
+  hogyan kell átadni a scriptnyelvnek mikor a C függvény visszatér, és
+  onnantól a SWIG az összes int visszatérési értékű függvénynél
+  alkalmazni fogja azt.
+* Declaration annotation: átnevezhetünk függvényeket, egy változót csak
+  olvashatóvá tehetünk, stb.
+* Class extension: új függvényeket vagy metódusokat írhatunk a C
+  könyvtárakhoz, például egy OO wrappert.
+
+== A kódgenerálás folyamata
+
+* A fordító a függvények definícióját eldobja, csak a deklarációkkal
+  foglalkozik.
+* A fordítás egy interfész file értelmezését jelenti, a kimenet pedig
+  szintén programkód lesz, ami az adott nyelv C API-ját fogja használni.
+* A SWIG nem foglalkozik azzal, hogy a generált kódot lefordítsa, bár ez
+  nem egy bonyolult művelet, csak doksit kell olvasni. :)
+
+== Interfész file-ok
+
+* Egy hagyományos C header file is megfelel interfész file-nak, de ha
+  szeretnénk bármilyen testreszabást, akkor már külön interface file-ra
+  lesz szükségünk.
+* A legegyszerűbb interface file:
++
+----
+%module example
+%{
+#include "example.h"
+%}
+
+%include "example.h"
+----
+
+* Példa átnevezésre:
++
+----
+%rename(osszead) cadd;
+----
+
+== A fordítás folyamata
+
+* Célunk tehát egy C forrásfile-ból (ami jelen esetben egy hello world
+  függvény, valamint egy két számot összeadó függvény), egy interfész
+  file-ból és olyan PHP kiterjesztést létrehozni, hogy utána ezeket egy
+  PHP script meg tudja hívni. Példa:
++
+----
+$ swig -php example.i
+$ gcc -c example.c example_wrap.c \
+	$(php-config --includes)
+$ gcc -shared example{,_wrap}.o -o example.so
+$ php -n -d extension_dir=. runme.php
+hello world!
+3
+----
+
+* A PHP script pedig csak ennyi volt:
++
+----
+<?php require "example.php";
+hello(); echo osszead(1, 2) . "\n"; ?>
+----
+
+== Adattípusok és pointerek
+
+* A legegyszerűbb eseten már túl vagyunk, nézzünk néhány problémát
+  amivel még számolnunk kell!
+* A legtöbb könyvtár nem csak primitív típusokat használ, azonban a
+  legtöbb esetben nekünk csak át kell adni ezeket a pointereket a
+  könyvtár egy másik függvényének. A SWIG ezt tökéletesen támogatja, és
+  nem is foglalkozik azzal, hogy ténylegesen micsoda az adott adattípus.
+* Korábban láttuk, hogy minden típusra typemap-eket kell írni, a fenti
+  funkció azért jó, mert így elkerülhetjük a felesleges typemap írást.
+* Ha classokról van szó és az interfész file tartalmazza az class
+  metódusait, akkor viszont egy függvény visszatérési értékét a
+  scriptnyelvben is objektumként látjuk, és az objektum metódusait meg
+  tudjuk hívni.
+
+== Argumentumok
+
+* Az argumentumok kezelését typemap-ekkel oldja meg a SWIG. Korábban
+  láttuk, hogy a typemap segítségével hogyan lehetett adott esetben egy
+  PHP-ból C-be konvertálni.
+* A másik irány, mikor a C visszatérési értéket kell PHP-ba alakítani.
+* Példa std::string esetére, mikor "befelé" (tehát PHP-ból C-be) ill.
+  kifelé konvertálunk:
++
+----
+%typemap(in) string %{
+  convert_to_string_ex($input);
+  $1.assign(Z_STRVAL_PP($input),
+    Z_STRLEN_PP($input));
+%}
+%typemap(out) string %{
+  ZVAL_STRINGL($result,
+    const_cast<char*>($1.data()),
+    $1.size(), 1);
+%}
+----
+
+== Egyéb argumentum-problémák
+
+* A C nyelvben egy függvénynek egy visszatérési értéke lehet, és nulla
+  vagy több bemeneti paramétere. A C nyelv az érték és a cím szerinti
+  paraméter-átadást is támogatja.
+* A scriptnyelveknél szokatlan az explicit cím szerinti
+  paraméter-átadás, viszont több visszatérési érték is megszokott.
+* Így például lehetséges a következő C függvényt:
++
+----
+int foo(double a, double b, double *OUT);
+----
+* A következőképpen használni Pythonból:
++
+----
+iresult, dresult = foo(3.5, 2)
+----
+
+== Globális változók, konstansok
+
+* Hasonló probléma, hogy pl. a Java nyelv nem támogatja a globális
+  változókat. Erre a célra a SWIG egy - a modul nevével megegyező nevű -
+  külön osztályt hoz létre, és azon belül érhetőek el ezek a változók.
+* Nem tér el sokban a konstansok esete sem, itt csak annyi a
+  különlegesség, hogy a SWIG még a `#define` segítségével létrehozott
+  "konstansokat" (amik valójában csak a preprocesszor számára léteznek)
+  is támogatja, tudva azt, hogy a csak így lesznek elérhetőek a
+  scriptnyelvek számára.
+
+== OO támogatás
+
+* Ha $$C++$$ osztályokat szeretnénk örököltetni scriptnyelvben, ennek
+  sincs semmi akadálya. Alapértelmezett esetben azonban ezek csak a
+  scriptnyelv számára lesznek elérhetőek. Így tehát ki terjeszteni a
+  $$C++$$ osztályokat, felülírhatjuk a metódusokat, stb. - de ezeket az
+  osztályokat nem adhatjuk át paraméterként C függvényeknek.
+* A másik érdekes kapcsolódó funkció, hogy a SWIG lehetővé teszi nem-OO
+  nyelveknek számára is objektumok kezelését, úgynevezett kilapított
+  függvényekkel. Egy tavalyi GSoC projekt odáig ment, hogy így lehetővé
+  tette C nyelvű programokból $$C++$$ könyvtárak használatát!
+
+== OO támogatás példa
+
+* Nézzünk erre egy példát:
++
+----
+class Foo {
+public:
+     int x;
+     int spam();
+};
+----
+* Abban az esetben ha az adott nyelv nem támogat osztályokat, a
+  következő függvények lesznek elérhetőek:
++
+----
+Foo *new_Foo();
+void delete_Foo(Foo *f);
+int Foo_x_get(Foo *f);
+void Foo_x_set(Foo *f, int value);
+int Foo_spam(Foo *f);
+----
+
+== Director support
+
+* Ez a funkció arra való, hogy a scriptnyelvben örököltetett osztályokat
+  át tudjuk adni paraméterként C függvényeknek.
+* Akkor hasznos ez, hogy például egy speciális file-formátumot tud
+  értelmezni egy könyvtár, viszont az egyes eseményeket mi pl. PHP-ból
+  szeretnénk lekezelni, azonban az értelmező függvény egyetlen osztályt
+  vár tőlünk paraméterként, amelynek a metódusait majd az értelmező
+  hívogatni fogja.
+
+== Director support példa
+
+* Egy tipikus értelmező könyvtár például így néz ki:
++
+----
+class FooParser {
+public:
+  virtual void startDocument() = 0;
+  virtual void endDocument() = 0;
+};
+----
+* A SWIG segítségével ezt a $$C++$$ osztályt örököltethetjük, majd a
+  SWIG olyan kódot fog generálni, amely elrejti a $$C++$$ könyvtár elől
+  azt a problémát, hogy ténylegesen neki egy PHP objektum metódusait
+  kell meghívnia.
+
+== A SWIG könyvtár
+
+* A SWIG könyvtár azért készült, mert a wrapper generálásakor tipikus
+  feladatok szoktak adódni.
+* Példa a Frugalware `pacman-g2` csomagkezelőjéből:
++
+----
+void *pacman_pkg_getinfo(PM_PKG *pkg,
+  unsigned char parm);
+----
+* A második paraméter mondja meg, hogy a csomagnak milyen információjára
+  vagyunk kíváncsiak, és ennek értékétől függően mi _tudjuk_, hogy mit
+  fogunk visszakapni, viszont valahogy el kéne mondani a SWIG-nek, hogy
+  szeretnénk azt a `void` pointert például `PM_GRP` pointernek látni.
+* Ehhez kéne írni egy függvényt ami C-ben megteszi a cast-olást, de erre
+  van beépített támogatás:
++
+----
+%pointer_cast(void *, PM_GRP *,
+  void_to_PM_GRP);
+----
+
+== Factory példa
+
+* Az előzőhöz hasonló eset, mikor egy függvény különböző típusú
+  objektumokat adhat vissza, tudjuk az összes lehetséges típust, de nem
+  feltétlen mi határozzuk meg a létrehozott objektum típusát. Ilyenkor a
+  `%pointer_cast` nem használható, viszont a `%factory` igen:
++
+----
+%factory(Geometry *Geometry::create,
+  Point, Circle);
+----
+* A fenti példa azt mondja, hogy a `Geometry *Geometry::create` függvény
+  vagy `Point` vagy `Circle` objektumot ad vissza, ebből tessék
+  megfejteni, hogy jelenleg melyik típust kaptuk meg.
+* Ilyen, és ehhez hasonló gyakran előforduló problémákra ad megoldást a
+  SWIG könyvtár.
+
+== Néhány adat a SWIG-ről
+
+* Jelenleg támogatott nyelvek: Python, Tcl, Ruby, PHP, Java, Scheme
+  (Guile, MzScheme, CHICKEN), Ocaml, Lua, Pike, C#, Modula-3, Octave, R
+  és Common Lisp (CLISP, Allegro CL, CFFI, UFFI).
+* Jelenlegi fejlesztők száma: 43
+* Első kiadás dátuma: 1996 február
+* Használt programozási nyelv: C, $$C++$$
+
+== Elérhetőségek
+
+* SWIG honlap: http://swig.org/
+* Felhasználói levelezési lista:
+  http://lists.sourceforge.net/lists/listinfo/swig-user
+* Fejlesztői lista:
+  http://lists.sourceforge.net/lists/listinfo/swig-devel
+* A diák elérhetősége:
+  http://vmiklos.hu/odp/

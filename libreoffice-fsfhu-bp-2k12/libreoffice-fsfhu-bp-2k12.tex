@@ -1,0 +1,321 @@
+\documentclass[a4paper]{report}
+
+\usepackage{alltt}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage[utf8]{inputenc}
+\usepackage[magyar]{babel}
+
+\title{Hogyan készítsünk új LibreOffice Writer funkciókat?}
+\author{Vajna Miklós <vmiklos@suse.cz>}
+
+\begin{document}
+
+\tableofcontents
+
+\chapter{Vajna Miklós: Hogyan készítsünk Writer funkciókat?}
+
+\section{Bevezetés}
+
+Nem csak a funkciók számítanak. Mielőtt belevetnénk magunkat a funkciók
+készítésének rejtelmeibe, ne felejtsük el, hogy nem ez az egyetlen módja a
+LibreOffice projekt segítésének. Segíthetjük a felhasználókat (levelező lista,
+fórum, IRC), tevékenykedhetünk a minőség javításán (hibajelentések készítése,
+nem megerősített hibák reprodukálása), útmutatókat írhatunk, a design csoport
+az inkább csak a fejlesztéshez értő fejlesztőknek ad tanácsot jó felhasználói
+felületek kialakításához. Az infrastruktúrát üzemeltető önkéntesek nélkül a
+többiek nem tudnának tevékenykedni.
+
+De még egy fejlesztőre váró kihívások közül is csak egy az új funkciók
+készítése: sok időt visz el a hibák javítása, tesztelés, a létező kód
+átrendezése, új önkéntesek segítése, dokumentálás. Ezek mind legalább annyira
+fontosak, mint az új funkciók fejlesztése. Ennek ellenére, ez a cikk a
+továbbiakban kizárólag ezzel a témával foglalkozik.
+
+Mielőtt továbbhaladnánk, nézzünk két példát új funkciókra, amik a LibreOffice
+4.0-ban fognak bemutatkozni:
+
+\begin{itemize}
+\item Korábban csak egy adott ponthoz fűzhettünk megjegyzéseket. Az új
+\emph{hozzászólás szövegtartományhoz} funkció lehetővé teszi, hogy -- egy
+kijelölés után -- olyan megjegyzést készítsünk, mely eltérő kezdő
+és végpozícióval rendelkezik.
+\item A \emph{más fejléc/lábléc az első oldalon} funkció lehetővé teszi, hogy
+egyetlen oldalstílust használva ne csak a jobb/bal oldalon lehessen külön
+fejléc/lábléc, hanem az első oldalon is.
+\item
+\end{itemize}
+
+Mindkét funkciót régóta kérik a felhasználók -- ezt tekinthetjük általános
+szabálynak is: egy, a 80-as évek óta fejlesztett irodai szoftvercsomagba
+érdemes meggondolni, milyen új funkcióra van szükség, csak akkor érdemes
+nekikezdeni valami újnak ha arra valós igény van.
+
+Mindezek után tekintsük át azt a nyolc lépést, amit minden új funkció
+elkészítése során végig érdemes követnünk:
+
+\begin{enumerate}
+\item dokumentum modell
+\item UNO API
+\item megjelenítés (layout)
+\item szűrők
+\item felhasználói felület
+\item tesztek
+\item dokumentáció
+\item specifikáció
+\end{enumerate}
+
+A cikk hátralevő részében ezeket a lépéseket részletezzük.
+
+\section{Dokumentum modell}
+
+Azt lehetne gondolni, hogy egy funkció fejlesztése során csak ezzel kell
+foglalkozni. A Writer klasszikus Modell-View-Controller paradigmában
+gondolkozik. Egy dokumentum egy \texttt{SwDoc} osztálynak feleltethető meg. Ezen
+belül az építőkockánk a paragrafusok (\texttt{SwNode} osztály). A forráskódban
+ezek az \texttt{sw/source/core/} könyvtár alatt találhatóak.
+
+Érdekesség, hogy nincs külön szöveges csomópont a
+szövegtartományoknak\footnote{Olyan szakasz egy paragrafuson belül, ahol a
+karakterek tulajdonságai is -- pl. betűtípus -- megegyeznek.}, helyette egy
+\texttt{SwpHints} osztályba gyűjtve minden paragrafuson belül változó
+tulajdonsághoz egy \texttt{SwTxtAttr} tartozik, kezdeti pozíció, végpozíció és
+érték információkkal.
+
+Ezen kívül még sok a kivétel, külön kollekcióban (nem paragrafusokhoz csatolva)
+találhatók meg például az oldalstílusok (\texttt{SwPageDesc} osztály). Az „első
+oldali fejléc” funkcióhoz például ehhez az osztályhoz kellett az
+\texttt{aMaster} és \texttt{aLeft} tagok mellé egy \texttt{aFirst} tagot is
+felvenni.
+
+Aki szeret példákon keresztül tanulni, annak érdemes az
+
+\begin{verbatim}
+SW_DEBUG=1 ./soffice.bin
+\end{verbatim}
+
+opcióval indítania a Writert, ilyenkor a Shift-F12 a \texttt{nodes.xml} file-ba
+kiírja a jelenleg aktuális dokumentummodellt.
+
+Másik lehetőség, ha UNO-n keresztül, makróból szeretnénk végigiterálni a paragrafusokon:
+
+\begin{verbatim}
+enum = ThisComponent.Text.createEnumeration
+para = enum.NextElement
+para = enum.NextElement
+xray para
+\end{verbatim}
+
+Így egy tetszőleges paragrafus tulajdonságait tekinthetjük meg.
+
+\section{UNO API}
+
+Makrókból nem férhetünk hozzá közvetlenül a Writer belső dokumentum
+modelljéhez, ehhez annak UNO API-ját kell használnunk. Ezért fontos, hogy az új
+funkciónkat elérhetővé tegyük ezen a publikus API-n keresztül is.
+
+Ez egyébként is hasznos, mivel ha makróból már tudjuk írni/olvasni az új
+funkciót, akkor a felhasználói felület elkészítése előtt is már tudjuk azt
+tesztelni. Ezen kívül az UNO alapú (ld. később) szűrők csak az UNO API-n
+elérhető funkciókat tudják menteni, valamint a tesztesetek is az UNO API-t
+használják legtöbbször. Az Writer UNO API kódját az
+\texttt{sw/source/core/unocore/} alatt találjuk.
+
+Nézzünk példákat! Ha a környezetérzékeny térközöket szeretnénk bekapcsolni egy paragrafusra:
+
+\begin{verbatim}
+enum = ThisComponent.Text.createEnumeration
+para = enum.NextElement
+xray para.ParaContextMargin
+para.ParaContextMargin = True
+\end{verbatim}
+
+Ha szeretnénk, hogy az első oldalon más fejléc/lábléc legyen:
+
+\begin{verbatim}
+oDefault = ThisComponent.StyleFamilies.PageStyles.Default
+oDefault.HeaderIsOn = True
+oDefault.HeaderIsShared = False
+oDefault.FirstIsShared = False
+\end{verbatim}
+
+Ha megjegyzést szeretnénk csatolni egy szövegtartományhoz:
+
+\begin{verbatim}
+oTextField =
+oDoc.createInstance("com.sun.star.text.TextField.Annotation")
+oTextField.TextRange.String = "Tartalom"
+oDoc.Text.insertTextContent(oCurs, oTextField, True)
+\end{verbatim}
+
+\section{Layout}
+
+A layout célja megjeleníteni azt, ami eddig csak a dokumentum modelljében volt
+elrejtve, azaz a „View” az MVC-ből. A Writer esetében ennek is saját dokumentum
+modellje van, aminek az építőkövei a keretek. Egy megnyitott dokumentum egy
+\texttt{SwRootFrm}-nek felel meg, egy oldal egy \texttt{SwPageFrm}-nek, majd
+ezen belül egy paragrafus egy \texttt{SwTxtFrm}-nek. Egy modell elem több
+layout elemnek is megfelelhet, gondoljunk csak arra az esetre ha egy fejléc
+több oldalon is megjelenik, vagy egy paragrafus átfolyik a következő oldalra.
+Ehhez az \texttt{1:N} megfeleltetéshez a Writer a az \texttt{SwClient} /
+\texttt{SwModify} mechanizmust használja: egy kliens csak egy kiszolgálóhoz
+lehet regisztrálva, viszont a kiszolgálóknak lehet több kliense, melyeken az
+\texttt{SwClientIter} osztállyal lehet iterálni.
+
+Ha példát szeretnénk látni a layout felépítésére, a dokumentum modelljéhez
+hasonló módon megtehetjük, csak F12-re lesz szükségünk a Shift-F12 helyett.
+
+\section{Szűrők}
+
+Próbáljuk meg túlélni az újraindítást! Ehhez a szűrők úgy segítenek bennünket,
+hogy az exporterek egy \texttt{SwDoc} példányt mentenek egy streamre, az
+importerek pedig egy stream alapján felépítenek egy (eredetileg üres)
+\texttt{SwDoc}-ot.
+
+Alapból minden szűrő „alien”, ami azt jelenti, hogy ismert, hogy információt
+vesztenek a konvertálás során. Egyetlen kivétel az ODF szűrő, amire emiatt
+„own”-ként hivatkoznak. Ennél a szűrőnél garantált a veszteségmentesség, ezért
+is kell kiterjeszteni \emph{minden} új funkció implementálásakor.
+
+A szűrők lehetnek UNO-alapúak (pl. DOCX import, RTF import), lehetnek
+beépítettek (belső sw API-t használják, pl. DOC import, DOC/DOCX/RTF
+export), végül lehetnek kevertek, mint amilyen az ODF szűrő (főleg UNO, de kis
+részben belső). Ezek forráskódjai az \texttt{sw/source/filter/},
+\texttt{writerfilter/}, ill. az \texttt{xmloff/} alatt találhatóak.
+
+\section{Felhasználói felület}
+
+Eljutottunk oda, hogy a felhasználók számára is élvezhetővé tudjuk tenni a
+munkánkat. A felhasználói felület a színfalak mögött lehet régi vagy új.
+
+A jelenlegi ablakok nagy része még a régi formátumot használja, tervezői
+vélhetőleg „ne használjunk egeret az UI elkészítéséhez!” felkiáltással
+tervezhették. Tipikusan egy \texttt{.src}, \texttt{.hrc} és egy \texttt{.cxx}
+file készült minden ablakhoz. Minden elem rögzített pozícióval / mérettel
+rendelkezett. Például:
+
+\begin{verbatim}
+CheckBox CB_SHARED_FIRST
+{
+HelpID ="svx:CheckBox:RID_SVXPAGE_HEADER:CB_SHARED_FIRST";
+Pos = MAP_APPFONT ( 12 , 46 ) ;
+Size = MAP_APPFONT ( 152 , 10 ) ;
+Text [ en-US ] = "Same content on first page" ;
+};
+\end{verbatim}
+
+Számos probléma van ezzel a megoldással, például ha új elemet adunk az ablak
+közepéhez, az összes többi vezérlőt le kell mozgatni kézzel, vagy a gomb
+szélessége a leghosszabb fordítást kell figyelembe vegye, stb.
+
+Ezzel szemben sokkal előremutatóbb Caolán új Glade-alapú
+megoldása\footnote{\url{http://conference.libreoffice.org/talks/}}, bár ha csak
+egy-egy új vezérlőt adunk létező ablakokhoz, egyelőre ritkán találkozunk velük.
+
+Az UI gyakran közös, nem lehet alkalmazás-specifikus, így az UI és a dokumentum modell közötti interakcióra a feltalált megoldás az \texttt{SfxItemSet} lett. Ha egy jelölőnégyzetet szeretnénk \texttt{SfxItemSet}-be tenni:
+
+\begin{verbatim}
+aSet.Put(SfxBoolItem(nWSharedFirst,
+    aCntSharedFirstBox.IsChecked()));
+\end{verbatim}
+
+Ez után kell az \texttt{SfxItemSet}-ből a dokumentum modellbe (jelen esetben \texttt{SwPageDesc}) rakni:
+
+\begin{verbatim}
+rPageDesc.ChgFirstShare(((const SfxBoolItem&)
+    rHeaderSet.Get(SID_ATTR_PAGE_SHARED_FIRST)).GetValue());
+\end{verbatim}
+
+Ellenkező irányban is hasonló megoldásra lesz szükségünk. Erre számos létező
+példa található: a közös kód az \texttt{svx/source/dialog/} és a \texttt{cui/}
+alatt, a Writer-specifikus kód az \texttt{sw/source/ui/} alatt.
+
+\section{Tesztesetek}
+
+Miért ismételnénk meg régi hibákat, ha választhatunk újak közül is? :-) A tesztesetek ebben segítenek minket.
+
+A LibreOffice-ban unitcheckeket (\emph{minden} részleges modul fordítás végén
+lefutnak), slowcheckeket (minden teljes fordítás végén futnak), valamint
+subsequentcheckeket (külön \texttt{make subsequentcheck}-re futnak csak)
+használunk. Új funkciók esetén legtöbbször egy új slowcheck-et készítünk: ez
+hozzáférést ad az UNO API-hoz, viszont minden fejlesztő gépén lefut, így széles
+tesztelést biztosít.
+
+Tesztelés során legtöbbször a dokumentum modellt (UNO API) vagy a layoutot (XML
+kiírás + XPath kifejezés kiértékelése) vizsgáljuk. Ez utóbbira egy példa:
+
+\begin{verbatim}
+CPPUNIT_ASSERT_EQUAL(OUString("Első fejléc"),
+    parseDump("/root/page[1]/header/txt/text()"));
+\end{verbatim}
+
+Import / export tesztek esetén először minimális reprodukáló dokumentumot
+készítünk. A tesztelés során vagy importálunk, vagy egy import-export-import
+szekvenciát hajtunk végre, attól függően, hogy mit akarunk tesztelni. Ez azért
+jó, mert így a tesztelendő dokumentumot mindig file-ban tárolhatjuk (nem kódból
+kell felépíteni), valamint a tesztelést is egy létező \texttt{SwDoc} példányon
+tudjuk elvégezni, nem pedig egy valamilyen formátumban elmentett file-t kell
+vizsgáljunk.
+
+Az elkészült (importált) dokumentum modelljét az UNO API-val könnyen
+vizsgálhatjuk. Pl. ha valamilyen nem-ASCII karakter probléma volt, sokszor elég
+csak a dokumentum hosszát (karaktereinek) számát vizsgálni:
+
+\begin{verbatim}
+CPPUNIT_ASSERT_EQUAL(6, getLength());
+\end{verbatim}
+
+A teszt megírása után a teszt futtatása következik. Ha sikeres, érdemes
+visszavonni a javítást vagy funkciót, és megbizonyosodni arról, hogy a teszt
+hibák jelez, vagy is a teszt jó. Ha ez stimmel, eldobhatjuk a visszavonást és
+összevonhatjuk a két commitot, így később nem kell keresni, hogy melyik
+módosítást tesztelte a teszteset.
+
+A Writer tesztjeit az \texttt{sw/qa/} alatt keressük.
+
+\section{Dokumentáció}
+
+A felhasználói dokumentáció a súgó, ami F1-re jelenik meg. Új tartalmat ehhez
+úgy érdemes hozzáadni, hogy a felhasználói felületen kikeressük a jövendőbeli
+szakasz szomszédos részeit, majd \texttt{git grep}-pel rákeresünk a létező
+tartalmakra a \texttt{helpcontent2/} alatt.
+
+Fontos, hogy míg normál kód módosításkor elég a fordítás a változtatásunk
+teszteléséhez (a \texttt{linkoo}-nak köszönhetően), így fordítás után egy
+telepítés is kell (\texttt{make dev-install}) mielőtt kipróbáljuk annak
+eredményét. További trükk, hogy minden paragrafusnak kell egy egyedi azonosító
+a fordításokat segítendő, de ez csak egy file-on belül kell egyedi legyen,
+tehát egyszerűen másoljunk le egy létezőt, majd tetszőleges algoritmust
+választva tegyük egyedivé\footnote{Egyszerű inkrementálás, ínyenceknek
+kvadratikus próba tökéletesen megfelel. :-)}.
+
+A fejlesztői dokumentációra mindössze annyi a követelmény, hogy minden új osztálynak
+legyen legalább egy egysoros \texttt{doxygen} leírása, hogy mit csinál --
+preferáltan minden publikus metódusra is, de ez már nem követelmény.
+
+\section{Specifikáció}
+
+Azért nem ezzel kezdünk egy új funkciót, mert mindent ODF-be mentünk, ami egy nyílt szabvány,
+és csak az kerül bele az ODF-be, amit már 3 független implementáció
+életképesnek mutat. Ennek megfelelően alapból a LibreOffice egy \emph{ODF 1.2
+Extended} formátumba ment, ami tartalmazza a saját kiegészítéseinket, majd
+ezeket javaslatként eljuttatjuk az OASIS-hoz.
+
+Egy ilyen módosítási kérelemnek tartalmaznia kell, hogy mi a motiváció a
+változtatásra, a szabvány szövegéhez valamint a RELAX NG sémához milyen
+változtatásokat szeretnénk eszközölni, végül részleteznie kell a változtatás
+várt hatását (visszafele kompatibilitás kezelése, stb).
+
+\section{Elérhetőségek}
+
+A szerző ezúton is elnézést kér, hogy sok -- a cikkben szereplő -- témát
+csak érintőlegesen említett, csak a Writer belső működéséről vastag könyvet
+lehetne írni, a cél leginkább a figyelemfelkeltés volt.  Az alábbi linkek
+további kérdések esetén remélhetőleg segítséget nyújtanak.
+
+\begin{itemize}
+\item LibreOffice honlap: \url{http://libreoffice.org/}
+\item A diák és ezen cikk elérhetősége: \url{http://vmiklos.hu/odp/}
+\end{itemize}
+
+\end{document}

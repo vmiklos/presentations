@@ -1,0 +1,6 @@
+= Conference articles for presentations
+
+- http://vmiklos.hu/presentations/downloads/git-szszk-bp-2k9-ci.pdf[git-szszk-bp-2k9-ci.pdf]
+- http://vmiklos.hu/presentations/downloads/rtf-szszk-bp-2k11-ci.pdf[rtf-szszk-bp-2k11-ci.pdf]
+- http://vmiklos.hu/presentations/downloads/libreoffice-fsfhu-bp-2k12-ci.pdf[libreoffice-fsfhu-bp-2k12-ci.pdf]
+- https://github.com/vmiklos/presentations[Git repo]
